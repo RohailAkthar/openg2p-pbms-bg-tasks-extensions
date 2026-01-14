@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
+from datetime import date
 from typing import Any, Dict, List, Tuple
+
+import numpy as np
 
 from openg2p_bg_task_models.schemas import (
     BeneficiarySearchResponsePayload,
@@ -233,3 +236,47 @@ class RegistryInterface(ABC):
         params = {"registrant_id": registrant_id}
 
         return text(sql_query).params(**params)
+
+    @staticmethod
+    def calculate_age(birth_date) -> int:
+        if not birth_date:
+            return 0
+        if isinstance(birth_date, str):
+            birth_date = date.fromisoformat(birth_date)
+        today = date.today()
+        return (
+            today.year
+            - birth_date.year
+            - ((today.month, today.day) < (birth_date.month, birth_date.day))
+        )
+
+    def compute_stats_dict(self, entitlements_dict: dict[int, list[float]]) -> dict:
+        # Returns a dict of stats per benefit_code_id for each stat
+        stats = {
+            "average": {},
+            "q1": {},
+            "q2": {},
+            "q3": {},
+            "total": {},
+        }
+        for benefit_code_id, values in entitlements_dict.items():
+            if not values:
+                stats["average"][benefit_code_id] = 0.0
+                stats["q1"][benefit_code_id] = 0.0
+                stats["q2"][benefit_code_id] = 0.0
+                stats["q3"][benefit_code_id] = 0.0
+                stats["total"][benefit_code_id] = 0.0
+            else:
+                arr = np.array(values)
+                stats["average"][benefit_code_id] = round(float(np.mean(arr)), 2)
+                stats["q1"][benefit_code_id] = round(
+                    float(np.percentile(arr, 25, method="midpoint")), 2
+                )
+                stats["q2"][benefit_code_id] = round(
+                    float(np.percentile(arr, 50, method="midpoint")), 2
+                )
+                stats["q3"][benefit_code_id] = round(
+                    float(np.percentile(arr, 75, method="midpoint")), 2
+                )
+                stats["total"][benefit_code_id] = float(np.sum(arr))
+        return stats
