@@ -414,7 +414,6 @@ class RegistryIndividual(RegistryInterface):
 
         where_clause = where_clause.replace("“", '"').replace("”", '"')
         where_clause = where_clause.replace("‘", "'").replace("’", "'")
-        where_clause = where_clause.replace('"g2p_individual_registry"', "res_partner")
 
         # Override due to res_partner mapping
         table_name = "res_partner"
@@ -448,7 +447,6 @@ class RegistryIndividual(RegistryInterface):
 
         where_clause = where_clause.replace("“", '"').replace("”", '"')
         where_clause = where_clause.replace("‘", "'").replace("’", "'")
-        where_clause = where_clause.replace('"g2p_individual_registry"', "res_partner")
 
         # Override due to res_partner mapping
         table_name = "res_partner"
@@ -481,7 +479,6 @@ class RegistryIndividual(RegistryInterface):
             raise ValueError("Invalid SQL query: Must be a valid SELECT statement")
 
         # Override due to res_partner mapping
-        sql_query = sql_query.replace('"g2p_individual_registry"', "res_partner")
         if "WHERE" in sql_query.upper():
             sql_query += f" AND res_partner.id = :registrant_id"
         else:
