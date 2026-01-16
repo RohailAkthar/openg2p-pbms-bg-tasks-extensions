@@ -198,7 +198,7 @@ class RegistryIndividual(RegistryInterface):
             beneficiaries = [
                 G2PIndividualRegistryPayload(
                     id=individual["id"],
-                    link_registry_id=str(individual["link_registry_id"]),
+                    link_registry_id=str(individual["id"]),
                     name=individual["name"],
                     gender=individual["gender"],
                     birthdate_date=individual["birthdate_date"],
@@ -276,7 +276,7 @@ class RegistryIndividual(RegistryInterface):
         self, registrant_ids, sr_session
     ) -> List[G2PIndividualRegistry]:
         individuals = sr_session.query(G2PIndividualRegistry).filter(
-            G2PIndividualRegistry.link_registry_id.in_(registrant_ids)
+            G2PIndividualRegistry.id.in_(registrant_ids)
         )
 
         return list(individuals.yield_per(500))
@@ -332,7 +332,7 @@ class RegistryIndividual(RegistryInterface):
             )
 
             for registrant in registrants_list:
-                registrant_map_from_registry[str(registrant.link_registry_id)] = registrant
+                registrant_map_from_registry[str(registrant.id)] = registrant
 
         # Collect entitlements per benefit_code_id
         entitlements: Dict[int, List[float]] = {}
@@ -395,7 +395,7 @@ class RegistryIndividual(RegistryInterface):
         sql_query = text(
             f"""
             SELECT {multiplier} FROM res_partner
-            WHERE link_registry_id = :registrant_id
+            WHERE id = :registrant_id
             """
         )
         return sql_query
@@ -426,7 +426,7 @@ class RegistryIndividual(RegistryInterface):
         sql_query = text(
             f"""
             SELECT * FROM {table_name}
-            WHERE link_registry_id IN ({registrant_placeholders}) {where_clause_sql}
+            WHERE id IN ({registrant_placeholders}) {where_clause_sql}
             ORDER BY {order_by}
             OFFSET :offset
             LIMIT :limit
@@ -460,7 +460,7 @@ class RegistryIndividual(RegistryInterface):
         sql_query = text(
             f"""
             SELECT COUNT(*) FROM {table_name}
-            WHERE link_registry_id IN ({registrant_placeholders}) {where_clause_sql}
+            WHERE id IN ({registrant_placeholders}) {where_clause_sql}
         """
         )
 
@@ -483,9 +483,9 @@ class RegistryIndividual(RegistryInterface):
         # Override due to res_partner mapping
         sql_query = sql_query.replace('"g2p_individual_registry"', "res_partner")
         if "WHERE" in sql_query.upper():
-            sql_query += f" AND res_partner.link_registry_id = :registrant_id"
+            sql_query += f" AND res_partner.id = :registrant_id"
         else:
-            sql_query += f" WHERE res_partner.link_registry_id = :registrant_id"
+            sql_query += f" WHERE res_partner.id = :registrant_id"
 
         params = {"registrant_id": registrant_id}
 
