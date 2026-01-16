@@ -319,7 +319,7 @@ class RegistryIndividual(RegistryInterface):
             .all()
         )
 
-        registrant_map_from_registry: dict[str, G2PIndividualRegistry] = {}
+        registrant_map_from_registry: Dict[str, G2PIndividualRegistry] = {}
 
         for beneficiary_list_detail in beneficiary_list_details:
             registrant_ids = []
@@ -335,9 +335,9 @@ class RegistryIndividual(RegistryInterface):
                 registrant_map_from_registry[str(registrant.link_registry_id)] = registrant
 
         # Collect entitlements per benefit_code_id
-        entitlements: dict[int, list[float]] = {}
-        entitlements_male: dict[int, list[float]] = {}
-        entitlements_female: dict[int, list[float]] = {}
+        entitlements: Dict[int, List[float]] = {}
+        entitlements_male: Dict[int, List[float]] = {}
+        entitlements_female: Dict[int, List[float]] = {}
 
         for beneficiary_list_detail in beneficiary_list_details:
             for registrant_detail in beneficiary_list_detail.registrant_details:
