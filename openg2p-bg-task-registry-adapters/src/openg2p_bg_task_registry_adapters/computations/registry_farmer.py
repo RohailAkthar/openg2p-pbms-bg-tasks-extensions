@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 
 import numpy as np
 from fastapi_cache.decorator import cache
@@ -372,7 +372,7 @@ class RegistryFarmer(RegistryInterface):
             .all()
         )
 
-        registrant_map_from_registry: dict[str, G2PFarmerRegistry] = {}
+        registrant_map_from_registry: Dict[str, G2PFarmerRegistry] = {}
 
         for beneficiary_list_detail in beneficiary_list_details:
             registrant_ids = []
@@ -389,9 +389,9 @@ class RegistryFarmer(RegistryInterface):
                 registrant_map_from_registry[str(registrant.link_registry_id)] = registrant
 
         # Collect entitlements per benefit_code_id
-        entitlements: dict[int, list[float]] = {}
-        entitlements_male: dict[int, list[float]] = {}
-        entitlements_female: dict[int, list[float]] = {}
+        entitlements: Dict[int, List[float]] = {}
+        entitlements_male: Dict[int, List[float]] = {}
+        entitlements_female: Dict[int, List[float]] = {}
 
         for beneficiary_list_detail in beneficiary_list_details:
             for registrant_detail in beneficiary_list_detail.registrant_details:
@@ -442,7 +442,7 @@ class RegistryFarmer(RegistryInterface):
             )
         )
 
-    def compute_stats_dict(self, entitlements_dict: dict[int, list[float]]) -> dict:
+    def compute_stats_dict(self, entitlements_dict: Dict[int, List[float]]) -> dict:
         # Returns a dict of stats per benefit_code_id for each stat
         stats = {
             "average": {},

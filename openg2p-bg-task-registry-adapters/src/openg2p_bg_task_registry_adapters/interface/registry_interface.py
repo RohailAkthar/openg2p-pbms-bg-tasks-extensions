@@ -250,7 +250,7 @@ class RegistryInterface(ABC):
             - ((today.month, today.day) < (birth_date.month, birth_date.day))
         )
 
-    def compute_stats_dict(self, entitlements_dict: dict[int, list[float]]) -> dict:
+    def compute_stats_dict(self, entitlements_dict: Dict[int, List[float]]) -> dict:
         # Returns a dict of stats per benefit_code_id for each stat
         stats = {
             "average": {},
