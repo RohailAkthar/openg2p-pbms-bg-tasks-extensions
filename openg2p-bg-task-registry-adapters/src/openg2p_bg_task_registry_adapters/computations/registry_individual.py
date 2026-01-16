@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 from fastapi_cache.decorator import cache
@@ -220,7 +220,7 @@ class RegistryIndividual(RegistryInterface):
         self,
         sr_session: AsyncSession,
         beneficiary_list_id: str,
-        registrant_ids: list[str],
+        registrant_ids: List[str],
         search_query: Optional[str] = None,
     ) -> int:
         beneficiary_count_query, beneficiary_count_params = self.construct_beneficiary_search_count_sql_query(
@@ -237,7 +237,7 @@ class RegistryIndividual(RegistryInterface):
     # =================================
     def compute_eligibility_statistics(
         self,
-        beneficiary_list_details: list[BeneficiaryListDetails],
+        beneficiary_list_details: List[BeneficiaryListDetails],
         base_summary,
         sr_session: Session,
         bg_task_session: Session,
@@ -274,7 +274,7 @@ class RegistryIndividual(RegistryInterface):
 
     def get_registrants_by_ids(
         self, registrant_ids, sr_session
-    ) -> list[G2PIndividualRegistry]:
+    ) -> List[G2PIndividualRegistry]:
         individuals = sr_session.query(G2PIndividualRegistry).filter(
             G2PIndividualRegistry.link_registry_id.in_(registrant_ids)
         )
@@ -319,7 +319,7 @@ class RegistryIndividual(RegistryInterface):
             .all()
         )
 
-        registrant_map_from_registry: dict[str, G2PIndividualRegistry] = {}
+        registrant_map_from_registry: Dict[str, G2PIndividualRegistry] = {}
 
         for beneficiary_list_detail in beneficiary_list_details:
             registrant_ids = []
@@ -327,7 +327,7 @@ class RegistryIndividual(RegistryInterface):
                 registrant_detail = RegistrantDetails(**registrant_detail)
                 registrant_ids.append(registrant_detail.registrant_id)
 
-            registrants_list: list[G2PIndividualRegistry] = self.get_registrants_by_ids(
+            registrants_list: List[G2PIndividualRegistry] = self.get_registrants_by_ids(
                 registrant_ids, sr_session
             )
 
@@ -335,9 +335,9 @@ class RegistryIndividual(RegistryInterface):
                 registrant_map_from_registry[str(registrant.link_registry_id)] = registrant
 
         # Collect entitlements per benefit_code_id
-        entitlements: dict[int, list[float]] = {}
-        entitlements_male: dict[int, list[float]] = {}
-        entitlements_female: dict[int, list[float]] = {}
+        entitlements: Dict[int, List[float]] = {}
+        entitlements_male: Dict[int, List[float]] = {}
+        entitlements_female: Dict[int, List[float]] = {}
 
         for beneficiary_list_detail in beneficiary_list_details:
             for registrant_detail in beneficiary_list_detail.registrant_details:
@@ -402,13 +402,13 @@ class RegistryIndividual(RegistryInterface):
 
     def construct_beneficiary_search_sql_query(
         self,
-        registrant_ids: list[str],
+        registrant_ids: List[str],
         target_registry: str,
         where_clause: str,
         order_by: str,
         page_size: int,
         page: int,
-    ) -> tuple[TextClause, dict[str, Any]]:
+    ) :
         if not registrant_ids:
             return None, {}
 
@@ -440,8 +440,8 @@ class RegistryIndividual(RegistryInterface):
         return sql_query, params
 
     def construct_beneficiary_search_count_sql_query(
-        self, registrant_ids: list[str], target_registry: str, where_clause: str
-    ) -> tuple[TextClause, dict[str, Any]]:
+        self, registrant_ids: List[str], target_registry: str, where_clause: str
+    ) :
         if not registrant_ids:
             return None, {}
 
