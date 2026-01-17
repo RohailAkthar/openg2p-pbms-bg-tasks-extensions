@@ -1,8 +1,6 @@
 from openg2p_bg_task_models.errors import BGTaskErrorCodes, BGTaskException
 
 from ..computations import (
-    RegistryFarmer,
-    RegistryStudent,
     RegistryIndividual,
 )
 from ..interface import RegistryInterface
@@ -16,13 +14,7 @@ class RegistryFactory:
     def get_registry_class(
         target_registry,
     ) -> RegistryInterface:
-        if target_registry == G2PRegistryType.FARMER.value:
-            return RegistryFarmer()
-
-        elif target_registry == G2PRegistryType.STUDENT.value:
-            return RegistryStudent()
-
-        elif target_registry == G2PRegistryType.INDIVIDUAL.value:
+        if target_registry == G2PRegistryType.INDIVIDUAL.value:
             return RegistryIndividual()
 
         else:

@@ -1,8 +1,7 @@
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import numpy as np
-from fastapi_cache.decorator import cache
 from openg2p_bg_task_models.models import BeneficiaryListDetails
 from openg2p_bg_task_models.schemas import (
     BeneficiarySearchResponsePayload,
@@ -14,7 +13,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import Session
 
-from ..cache import beneficiary_count_key_builder
 from ..interface import RegistryInterface
 from ..models import (
     BeneficiaryListSummaryIndividual as BeneficiaryListSummaryIndividualModel,
@@ -31,7 +29,7 @@ _logger = logging.getLogger("openg2p_bg_task_registry_adapters")
 
 
 class RegistryIndividual(RegistryInterface):
-    """Fetches individual data from res_partner (via ORM) and computes statistics"""
+    """Registry adapter for individual beneficiaries"""
 
     # ===================
     # Summary API Methods
@@ -40,115 +38,69 @@ class RegistryIndividual(RegistryInterface):
         self,
         beneficiary_list_id: str,
         bg_task_session: AsyncSession,
-        formated: bool = False,
     ) -> BeneficiaryListSummaryIndividualPayload:
-        _logger.info(f"Fetching summary for beneficiary_list_id: {beneficiary_list_id}")
-        beneficiary_list_summary_individual = await bg_task_session.execute(
+        result = await bg_task_session.execute(
             select(BeneficiaryListSummaryIndividualModel).where(
-                BeneficiaryListSummaryIndividualModel.beneficiary_list_id == beneficiary_list_id
+                BeneficiaryListSummaryIndividualModel.beneficiary_list_id
+                == beneficiary_list_id
             )
         )
-        beneficiary_list_summary_individual = beneficiary_list_summary_individual.scalars().first()
+        summary = result.scalars().first()
+        if not summary:
+            raise ValueError(f"No summary found for {beneficiary_list_id}")
 
-        if not beneficiary_list_summary_individual:
-            raise ValueError(
-                f"No summary found for beneficiary_list_id: {beneficiary_list_id}"
-            )
-
-        summary_individual_payload = BeneficiaryListSummaryIndividualPayload(
-            beneficiary_list_summary=BeneficiaryListSummary(
-                id=beneficiary_list_summary_individual.id,
-                program_id=beneficiary_list_summary_individual.program_id,
-                program_mnemonic=beneficiary_list_summary_individual.program_mnemonic,
-                target_registry=beneficiary_list_summary_individual.target_registry,
-                beneficiary_list_id=beneficiary_list_summary_individual.beneficiary_list_id,
-                number_of_registrants=beneficiary_list_summary_individual.number_of_registrants,
-                date_created=beneficiary_list_summary_individual.date_created,
-                total_disbursement_quantity=beneficiary_list_summary_individual.total_disbursement_quantity,
-                average_entitlement_per_registrant=beneficiary_list_summary_individual.average_entitlement_per_person,
-            ),
-            registry_summary=BeneficiaryListSummaryIndividual(
-                age_mean=f"{beneficiary_list_summary_individual.age_mean} {beneficiary_list_summary_individual.age_units}"
-                if beneficiary_list_summary_individual.age_mean is not None
-                else None,
-                age_q1=f"{beneficiary_list_summary_individual.age_q1} {beneficiary_list_summary_individual.age_units}"
-                if beneficiary_list_summary_individual.age_q1 is not None
-                else None,
-                age_q2=f"{beneficiary_list_summary_individual.age_q2} {beneficiary_list_summary_individual.age_units}"
-                if beneficiary_list_summary_individual.age_q2 is not None
-                else None,
-                age_q3=f"{beneficiary_list_summary_individual.age_q3} {beneficiary_list_summary_individual.age_units}"
-                if beneficiary_list_summary_individual.age_q3 is not None
-                else None,
-                average_entitlement_female=beneficiary_list_summary_individual.average_entitlement_female,
-                average_entitlement_male=beneficiary_list_summary_individual.average_entitlement_male,
-                entitlement_amount_q1=beneficiary_list_summary_individual.entitlement_amount_q1,
-                entitlement_amount_q2=beneficiary_list_summary_individual.entitlement_amount_q2,
-                entitlement_amount_q3=beneficiary_list_summary_individual.entitlement_amount_q3,
-                entitlement_amount_male_q1=beneficiary_list_summary_individual.entitlement_amount_male_q1,
-                entitlement_amount_male_q2=beneficiary_list_summary_individual.entitlement_amount_male_q2,
-                entitlement_amount_male_q3=beneficiary_list_summary_individual.entitlement_amount_male_q3,
-                entitlement_amount_female_q1=beneficiary_list_summary_individual.entitlement_amount_female_q1,
-                entitlement_amount_female_q2=beneficiary_list_summary_individual.entitlement_amount_female_q2,
-                entitlement_amount_female_q3=beneficiary_list_summary_individual.entitlement_amount_female_q3,
-            ),
-        )
-        return summary_individual_payload
+        return self._build_summary_payload(summary)
 
     def get_summary_sync(
         self, beneficiary_list_id: str, bg_task_session: Session
     ) -> BeneficiaryListSummaryIndividualPayload:
-        beneficiary_list_summary_individual = (
+        summary = (
             bg_task_session.query(BeneficiaryListSummaryIndividualModel)
             .filter_by(beneficiary_list_id=beneficiary_list_id)
             .first()
         )
+        if not summary:
+            raise ValueError(f"No summary found for {beneficiary_list_id}")
 
-        if not beneficiary_list_summary_individual:
-            raise ValueError(
-                f"No summary found for beneficiary_list_id: {beneficiary_list_id}"
-            )
+        return self._build_summary_payload(summary)
 
-        summary_individual_payload = BeneficiaryListSummaryIndividualPayload(
+    def _build_summary_payload(
+        self, summary: BeneficiaryListSummaryIndividualModel
+    ) -> BeneficiaryListSummaryIndividualPayload:
+        return BeneficiaryListSummaryIndividualPayload(
             beneficiary_list_summary=BeneficiaryListSummary(
-                id=beneficiary_list_summary_individual.id,
-                program_id=beneficiary_list_summary_individual.program_id,
-                program_mnemonic=beneficiary_list_summary_individual.program_mnemonic,
-                target_registry=beneficiary_list_summary_individual.target_registry,
-                beneficiary_list_id=beneficiary_list_summary_individual.beneficiary_list_id,
-                number_of_registrants=beneficiary_list_summary_individual.number_of_registrants,
-                date_created=beneficiary_list_summary_individual.date_created,
-                total_disbursement_quantity=beneficiary_list_summary_individual.total_disbursement_quantity,
-                average_entitlement_per_registrant=beneficiary_list_summary_individual.average_entitlement_per_person,
+                id=summary.id,
+                program_id=summary.program_id,
+                program_mnemonic=summary.program_mnemonic,
+                target_registry=summary.target_registry,
+                beneficiary_list_id=summary.beneficiary_list_id,
+                number_of_registrants=summary.number_of_registrants,
+                date_created=summary.date_created,
+                total_disbursement_quantity=summary.total_disbursement_quantity,
+                average_entitlement_per_registrant=summary.average_entitlement_per_person,
             ),
             registry_summary=BeneficiaryListSummaryIndividual(
-                age_mean=f"{beneficiary_list_summary_individual.age_mean} {beneficiary_list_summary_individual.age_units}"
-                if beneficiary_list_summary_individual.age_mean is not None
-                else None,
-                age_q1=f"{beneficiary_list_summary_individual.age_q1} {beneficiary_list_summary_individual.age_units}"
-                if beneficiary_list_summary_individual.age_q1 is not None
-                else None,
-                age_q2=f"{beneficiary_list_summary_individual.age_q2} {beneficiary_list_summary_individual.age_units}"
-                if beneficiary_list_summary_individual.age_q2 is not None
-                else None,
-                age_q3=f"{beneficiary_list_summary_individual.age_q3} {beneficiary_list_summary_individual.age_units}"
-                if beneficiary_list_summary_individual.age_q3 is not None
-                else None,
-                average_entitlement_female=beneficiary_list_summary_individual.average_entitlement_female,
-                average_entitlement_male=beneficiary_list_summary_individual.average_entitlement_male,
-                entitlement_amount_q1=beneficiary_list_summary_individual.entitlement_amount_q1,
-                entitlement_amount_q2=beneficiary_list_summary_individual.entitlement_amount_q2,
-                entitlement_amount_q3=beneficiary_list_summary_individual.entitlement_amount_q3,
-                entitlement_amount_male_q1=beneficiary_list_summary_individual.entitlement_amount_male_q1,
-                entitlement_amount_male_q2=beneficiary_list_summary_individual.entitlement_amount_male_q2,
-                entitlement_amount_male_q3=beneficiary_list_summary_individual.entitlement_amount_male_q3,
-                entitlement_amount_female_q1=beneficiary_list_summary_individual.entitlement_amount_female_q1,
-                entitlement_amount_female_q2=beneficiary_list_summary_individual.entitlement_amount_female_q2,
-                entitlement_amount_female_q3=beneficiary_list_summary_individual.entitlement_amount_female_q3,
+                age_mean=self._fmt_age(summary.age_mean, summary.age_units),
+                age_q1=self._fmt_age(summary.age_q1, summary.age_units),
+                age_q2=self._fmt_age(summary.age_q2, summary.age_units),
+                age_q3=self._fmt_age(summary.age_q3, summary.age_units),
+                average_entitlement_female=summary.average_entitlement_female,
+                average_entitlement_male=summary.average_entitlement_male,
+                entitlement_amount_q1=summary.entitlement_amount_q1,
+                entitlement_amount_q2=summary.entitlement_amount_q2,
+                entitlement_amount_q3=summary.entitlement_amount_q3,
+                entitlement_amount_male_q1=summary.entitlement_amount_male_q1,
+                entitlement_amount_male_q2=summary.entitlement_amount_male_q2,
+                entitlement_amount_male_q3=summary.entitlement_amount_male_q3,
+                entitlement_amount_female_q1=summary.entitlement_amount_female_q1,
+                entitlement_amount_female_q2=summary.entitlement_amount_female_q2,
+                entitlement_amount_female_q3=summary.entitlement_amount_female_q3,
             ),
         )
 
-        return summary_individual_payload
+    @staticmethod
+    def _fmt_age(value, units):
+        return f"{value} {units}" if value is not None else None
 
     # ==============================
     # Beneficiary Search API Methods
@@ -164,73 +116,77 @@ class RegistryIndividual(RegistryInterface):
         page_size: int = 10,
         order_by: str = "id asc",
     ) -> BeneficiarySearchResponsePayload:
-        registrant_details = await bg_task_session.execute(
+        if target_registry != "individual":
+            raise ValueError("Only individual registry supported")
+
+        page = max(page, 1)
+        page_size = min(max(page_size, 1), 100)
+
+        result = await bg_task_session.execute(
             select(BeneficiaryListDetails.registrant_details).where(
                 BeneficiaryListDetails.beneficiary_list_id == beneficiary_list_id
             )
         )
-        registrant_details = registrant_details.scalars().all()
-        registrant_ids = []
-        for registrant_detail in registrant_details:
-            for registrant in registrant_detail:
-                registrant_ids.append(registrant["registrant_id"])
 
-        individual_search_query, individual_search_params = self.construct_beneficiary_search_sql_query(
-            registrant_ids,
-            target_registry,
-            search_query,
-            order_by,
-            page_size,
-            page,
-        )
-        individual_search_results = (
-            (await sr_session.execute(individual_search_query, individual_search_params))
-            .mappings()
-            .all()
-        )
+        registrant_ids: List[int] = list({
+            int(r["registrant_id"])
+            for details in result.scalars().all()
+            for r in details
+        })
 
-        total_beneficiary_count = await self._get_total_beneficiary_count(
-            sr_session, beneficiary_list_id, registrant_ids, search_query
+        if not registrant_ids:
+            return BeneficiarySearchResponsePayload(
+                total_beneficiary_count=0,
+                page=page,
+                page_size=page_size,
+                beneficiaries=[],
+            )
+
+        query, params = self.construct_beneficiary_search_sql_query(
+            registrant_ids, search_query, order_by, page_size, page
         )
 
-        beneficiaries = []
-        if individual_search_results:
-            beneficiaries = [
-                G2PIndividualRegistryPayload(
-                    id=individual["id"],
-                    link_registry_id=individual["registrant_id_str"],
-                    name=individual["name"],
-                    gender=individual["gender"],
-                    birthdate=individual["birthdate"],
-                )
-                for individual in individual_search_results
-            ]
+        rows = (await sr_session.execute(query, params)).mappings().all()
 
-        response_payload = BeneficiarySearchResponsePayload(
-            total_beneficiary_count=total_beneficiary_count,
+        total_count = await self._get_total_beneficiary_count(
+            sr_session, registrant_ids, search_query
+        )
+
+        beneficiaries = [
+            G2PIndividualRegistryPayload(
+                id=row["id"],
+                link_registry_id=row["registrant_id_str"],
+                name=row["name"],
+                gender=row["gender"],
+                birthdate=row["birthdate"],
+            )
+            for row in rows
+        ]
+
+        return BeneficiarySearchResponsePayload(
+            total_beneficiary_count=total_count,
             page=page,
             page_size=page_size,
             beneficiaries=beneficiaries,
         )
 
-        return response_payload
-
-    @cache(expire=120, key_builder=beneficiary_count_key_builder)
     async def _get_total_beneficiary_count(
         self,
         sr_session: AsyncSession,
-        beneficiary_list_id: str,
-        registrant_ids: List[str],
-        search_query: Optional[str] = None,
+        registrant_ids: List[int],
+        search_query: Optional[str],
     ) -> int:
-        beneficiary_count_query, beneficiary_count_params = self.construct_beneficiary_search_count_sql_query(
-            registrant_ids, "individual", search_query
-        )
-        total_beneficiary_count = (
-            await sr_session.execute(beneficiary_count_query, beneficiary_count_params)
-        ).scalar_one()
+        if not registrant_ids:
+            return 0
 
-        return total_beneficiary_count
+        query, params = self.construct_beneficiary_search_count_sql_query(
+            registrant_ids, search_query
+        )
+
+        if not query:
+            return 0
+
+        return (await sr_session.execute(query, params)).scalar_one()
 
     # =================================
     # Eligibility Celery Worker Methods
@@ -242,20 +198,21 @@ class RegistryIndividual(RegistryInterface):
         sr_session: Session,
         bg_task_session: Session,
     ):
-        ages = []
-        for beneficiary_list_detail in beneficiary_list_details:
-            registrant_ids = []
-            for registrant_detail in beneficiary_list_detail.registrant_details:
-                registrant_detail["registrant_id"] = str(registrant_detail["registrant_id"])
-                registrant_detail = RegistrantDetails(**registrant_detail)
-                registrant_ids.append(registrant_detail.registrant_id)
+        registrant_ids: Set[int] = {
+            int(RegistrantDetails(**r).registrant_id)
+            for d in beneficiary_list_details
+            for r in d.registrant_details
+        }
 
-            registrants = self.get_registrants_by_ids(registrant_ids, sr_session)
-            for registrant in registrants:
-                if registrant.birthdate:
-                    ages.append(self.calculate_age(registrant.birthdate))
+        registrants = self.get_registrants_by_ids(list(registrant_ids), sr_session)
 
-        individual_summary = BeneficiaryListSummaryIndividualModel(
+        ages = [
+            self.calculate_age(r.birthdate)
+            for r in registrants
+            if r.birthdate
+        ]
+
+        summary = BeneficiaryListSummaryIndividualModel(
             program_id=base_summary.program_id,
             program_mnemonic=base_summary.program_mnemonic,
             target_registry=base_summary.target_registry,
@@ -265,228 +222,228 @@ class RegistryIndividual(RegistryInterface):
         )
 
         if ages:
-            ages_array = np.array(ages)
-            individual_summary.age_q1 = round(float(np.percentile(ages_array, 25, method="midpoint")), 2)
-            individual_summary.age_q2 = round(float(np.percentile(ages_array, 50, method="midpoint")), 2)
-            individual_summary.age_q3 = round(float(np.percentile(ages_array, 75, method="midpoint")), 2)
-            individual_summary.age_mean = round(float(np.mean(ages_array)), 2)
+            a = np.array(ages)
+            summary.age_q1 = round(float(np.percentile(a, 25, method="midpoint")), 2)
+            summary.age_q2 = round(float(np.percentile(a, 50, method="midpoint")), 2)
+            summary.age_q3 = round(float(np.percentile(a, 75, method="midpoint")), 2)
+            summary.age_mean = round(float(np.mean(a)), 2)
 
-        bg_task_session.add(individual_summary)
+        bg_task_session.add(summary)
 
     def get_registrants_by_ids(
-        self, registrant_ids, sr_session
+        self, registrant_ids: List[int], sr_session: Session
     ) -> List[G2PIndividualRegistry]:
-        individuals = sr_session.query(G2PIndividualRegistry).filter(
-            G2PIndividualRegistry.id.in_(registrant_ids)
-        )
+        if not registrant_ids:
+            return []
 
-        return list(individuals.yield_per(500))
+        return list(
+            sr_session.query(G2PIndividualRegistry)
+            .filter(G2PIndividualRegistry.id.in_(registrant_ids))
+            .yield_per(500)
+        )
 
     # =================================
     # Entitlement Celery Worker Methods
     # =================================
-    def get_is_registant_entitled(
-        self, registrant_id: str, sql_query: str, sr_session: Session
+    def get_is_registrant_entitled(
+        self, registrant_id: int, sql_query: str, sr_session: Session
     ) -> bool:
-        sql_query_with_registrant_id = self.construct_get_is_registrant_entitled_sql_query(
-            registrant_id, "individual", sql_query
+        """
+        SECURITY NOTE:
+        This method executes TRUSTED INTERNAL SQL ONLY.
+        Callers must never pass user-provided input.
+        """
+        sql_query_with_registrant_id = (
+            self.construct_get_is_registrant_entitled_sql_query(
+                registrant_id, sql_query
+            )
         )
-        result = sr_session.execute(sql_query_with_registrant_id).fetchone()
-        return result is not None
+        return sr_session.execute(sql_query_with_registrant_id).fetchone() is not None
 
     def get_entitlement_multiplier(
-        self, multiplier: str, registrant_id: str, sr_session: Session
+        self, multiplier: str, registrant_id: int, sr_session: Session
     ) -> int:
         if not multiplier or multiplier == "none":
             return 1
 
+        ALLOWED_MULTIPLIERS = {
+            "household_size",
+            "disability_multiplier",
+            "elderly_multiplier",
+        }
+        if multiplier not in ALLOWED_MULTIPLIERS:
+            raise ValueError(f"Invalid multiplier column: {multiplier}")
+
         sql_query = self.construct_multiplier_sql_query(
             multiplier, target_registry="individual"
         )
-        params = {"registrant_id": registrant_id}
-        result = sr_session.execute(sql_query, params).fetchone()
-        multiplier_value: int = (
-            int(result[0]) if result and result[0] is not None else 1
-        )
+        if not sql_query:
+            return 1
 
-        return multiplier_value
+        result = sr_session.execute(
+            sql_query, {"registrant_id": registrant_id}
+        ).fetchone()
+
+        return int(result[0]) if result and result[0] is not None else 1
 
     def compute_entitlement_statistics(
         self, beneficiary_list_id: str, bg_task_session: Session, sr_session: Session
     ):
-        beneficiary_list_details = (
+        details = (
             bg_task_session.query(BeneficiaryListDetails)
             .filter_by(beneficiary_list_id=beneficiary_list_id)
             .all()
         )
 
-        registrant_map_from_registry: Dict[str, G2PIndividualRegistry] = {}
+        registrant_ids = {
+            int(RegistrantDetails(**r).registrant_id)
+            for d in details
+            for r in d.registrant_details
+        }
 
-        for beneficiary_list_detail in beneficiary_list_details:
-            registrant_ids = []
-            for registrant_detail in beneficiary_list_detail.registrant_details:
-                registrant_detail["registrant_id"] = str(registrant_detail["registrant_id"])
-                registrant_detail = RegistrantDetails(**registrant_detail)
-                registrant_ids.append(registrant_detail.registrant_id)
+        registrants = self.get_registrants_by_ids(list(registrant_ids), sr_session)
+        registry_map = {r.id: r for r in registrants}
 
-            registrants_list: List[G2PIndividualRegistry] = self.get_registrants_by_ids(
-                registrant_ids, sr_session
-            )
-
-            for registrant in registrants_list:
-                registrant_map_from_registry[str(registrant.id)] = registrant
-
-        # Collect entitlements per benefit_code_id
         entitlements: Dict[int, List[float]] = {}
-        entitlements_male: Dict[int, List[float]] = {}
-        entitlements_female: Dict[int, List[float]] = {}
+        male: Dict[int, List[float]] = {}
+        female: Dict[int, List[float]] = {}
 
-        for beneficiary_list_detail in beneficiary_list_details:
-            for registrant_detail in beneficiary_list_detail.registrant_details:
-                registrant_detail["registrant_id"] = str(registrant_detail["registrant_id"])
-                registrant_detail = RegistrantDetails(**registrant_detail)
-                registrant = registrant_map_from_registry.get(
-                    str(registrant_detail.registrant_id)
-                )
-                gender = registrant.gender if registrant else None
+        for d in details:
+            for r in d.registrant_details:
+                rd = RegistrantDetails(**r)
+                reg = registry_map.get(int(rd.registrant_id))
+                gender = reg.gender if reg else None
 
-                for benefit_code_id, value in registrant_detail.entitlement.items():
-                    entitlements.setdefault(benefit_code_id, []).append(value)
+                for code, value in rd.entitlement.items():
+                    entitlements.setdefault(code, []).append(value)
                     if gender == Gender.MALE.value:
-                        entitlements_male.setdefault(benefit_code_id, []).append(value)
+                        male.setdefault(code, []).append(value)
                     elif gender == Gender.FEMALE.value:
-                        entitlements_female.setdefault(benefit_code_id, []).append(value)
-                    else:
-                        _logger.warning(f"Invalid or missing gender for registrant: {registrant_detail.registrant_id}")
+                        female.setdefault(code, []).append(value)
 
-        entitlement_stats = self.compute_stats_dict(entitlements)
-        entitlement_male_stats = self.compute_stats_dict(entitlements_male)
-        entitlement_female_stats = self.compute_stats_dict(entitlements_female)
+        stats = self.compute_stats_dict(entitlements)
+        male_stats = self.compute_stats_dict(male)
+        female_stats = self.compute_stats_dict(female)
 
         bg_task_session.execute(
             update(BeneficiaryListSummaryIndividualModel)
             .where(
-                BeneficiaryListSummaryIndividualModel.beneficiary_list_id == beneficiary_list_id
+                BeneficiaryListSummaryIndividualModel.beneficiary_list_id
+                == beneficiary_list_id
             )
             .values(
-                total_disbursement_quantity=dict(entitlement_stats["total"]),
-                average_entitlement_per_person=dict(entitlement_stats["average"]),
-                entitlement_amount_q1=dict(entitlement_stats["q1"]),
-                entitlement_amount_q2=dict(entitlement_stats["q2"]),
-                entitlement_amount_q3=dict(entitlement_stats["q3"]),
-                average_entitlement_male=dict(entitlement_male_stats["average"]),
-                entitlement_amount_male_q1=dict(entitlement_male_stats["q1"]),
-                entitlement_amount_male_q2=dict(entitlement_male_stats["q2"]),
-                entitlement_amount_male_q3=dict(entitlement_male_stats["q3"]),
-                average_entitlement_female=dict(entitlement_female_stats["average"]),
-                entitlement_amount_female_q1=dict(entitlement_female_stats["q1"]),
-                entitlement_amount_female_q2=dict(entitlement_female_stats["q2"]),
-                entitlement_amount_female_q3=dict(entitlement_female_stats["q3"]),
+                total_disbursement_quantity=dict(stats["total"]),
+                average_entitlement_per_person=dict(stats["average"]),
+                entitlement_amount_q1=dict(stats["q1"]),
+                entitlement_amount_q2=dict(stats["q2"]),
+                entitlement_amount_q3=dict(stats["q3"]),
+                average_entitlement_male=dict(male_stats["average"]),
+                entitlement_amount_male_q1=dict(male_stats["q1"]),
+                entitlement_amount_male_q2=dict(male_stats["q2"]),
+                entitlement_amount_male_q3=dict(male_stats["q3"]),
+                average_entitlement_female=dict(female_stats["average"]),
+                entitlement_amount_female_q1=dict(female_stats["q1"]),
+                entitlement_amount_female_q2=dict(female_stats["q2"]),
+                entitlement_amount_female_q3=dict(female_stats["q3"]),
             )
         )
 
     # ===============================
     # SQL Construction Overrides
     # ===============================
-    def construct_multiplier_sql_query(
-        self, multiplier: str, target_registry: str
-    ) -> TextClause:
-        if not multiplier or multiplier == "none":
-            return None
-
-        # Override due to res_partner mapping
-        sql_query = text(
-            f"""
-            SELECT {multiplier}::TEXT FROM res_partner
-            WHERE id = :registrant_id
-            """
-        )
-        return sql_query
-
     def construct_beneficiary_search_sql_query(
         self,
-        registrant_ids: List[str],
-        target_registry: str,
-        where_clause: str,
+        registrant_ids: List[int],
+        search_query: Optional[str],
         order_by: str,
         page_size: int,
         page: int,
-    ) :
-        if not registrant_ids:
-            return None, {}
-
-        where_clause = where_clause.replace("“", '"').replace("”", '"')
-        where_clause = where_clause.replace("‘", "'").replace("’", "'")
-
-        # Override due to res_partner mapping
-        table_name = "res_partner"
-        where_clause_sql = f" AND {where_clause}" if where_clause else ""
-        registrant_placeholders = ", ".join(
-            [f":registrant_id_{i}" for i in range(len(registrant_ids))]
-        )
-
-        sql_query = text(
-            f"""
-            SELECT *, id::TEXT as registrant_id_str FROM {table_name}
-            WHERE id IN ({registrant_placeholders}) {where_clause_sql}
-            ORDER BY {order_by}
-            OFFSET :offset
-            LIMIT :limit
-        """
-        )
-
-        params = {
-            f"registrant_id_{i}": registrant_ids[i] for i in range(len(registrant_ids))
+    ) -> Tuple[TextClause, Dict[str, Any]]:
+        ALLOWED_ORDER_BY = {
+            "id asc": "id ASC",
+            "id desc": "id DESC",
+            "name asc": "name ASC",
+            "name desc": "name DESC",
         }
-        params.update({"offset": page_size * (page - 1), "limit": page_size})
+        key = order_by.lower() if isinstance(order_by, str) else "id asc"
+        order_sql = ALLOWED_ORDER_BY.get(key, "id ASC")
 
-        return sql_query, params
+        where = ""
+        params: Dict[str, Any] = {"registrant_ids": registrant_ids}
+
+        if search_query:
+            where = "AND name ILIKE :search_query"
+            params["search_query"] = f"%{search_query}%"
+
+        query = text(
+            f"""
+            SELECT id, name, gender, birthdate, id::TEXT AS registrant_id_str
+            FROM res_partner
+            WHERE id = ANY(:registrant_ids) {where}
+            ORDER BY {order_sql}
+            OFFSET :offset LIMIT :limit
+            """
+        )
+
+        params.update(
+            {
+                "offset": page_size * (page - 1),
+                "limit": page_size,
+            }
+        )
+
+        return query, params
 
     def construct_beneficiary_search_count_sql_query(
-        self, registrant_ids: List[str], target_registry: str, where_clause: str
-    ) :
-        if not registrant_ids:
-            return None, {}
+        self,
+        registrant_ids: List[int],
+        search_query: Optional[str],
+    ) -> Tuple[TextClause, Dict[str, Any]]:
+        where = ""
+        params: Dict[str, Any] = {"registrant_ids": registrant_ids}
 
-        where_clause = where_clause.replace("“", '"').replace("”", '"')
-        where_clause = where_clause.replace("‘", "'").replace("’", "'")
+        if search_query:
+            where = "AND name ILIKE :search_query"
+            params["search_query"] = f"%{search_query}%"
 
-        # Override due to res_partner mapping
-        table_name = "res_partner"
-        where_clause_sql = f" AND {where_clause}" if where_clause else ""
-        registrant_placeholders = ", ".join(
-            [f":registrant_id_{i}" for i in range(len(registrant_ids))]
-        )
-
-        sql_query = text(
+        query = text(
             f"""
-            SELECT COUNT(*) FROM {table_name}
-            WHERE id IN ({registrant_placeholders}) {where_clause_sql}
-        """
+            SELECT COUNT(*)
+            FROM res_partner
+            WHERE id = ANY(:registrant_ids) {where}
+            """
         )
 
-        params = {
-            f"registrant_id_{i}": registrant_ids[i] for i in range(len(registrant_ids))
-        }
+        return query, params
 
-        return sql_query, params
+    def construct_multiplier_sql_query(
+        self, multiplier: str, target_registry: str
+    ) -> Optional[TextClause]:
+        if not multiplier or multiplier == "none":
+            return None
+
+        # Safe: multiplier is validated against a strict allowlist
+        return text(
+            f"""
+            SELECT {multiplier}::TEXT
+            FROM res_partner
+            WHERE id = :registrant_id
+            """
+        )
 
     def construct_get_is_registrant_entitled_sql_query(
-        self, registrant_id: str, target_registry: str, sql_query: str
+        self, registrant_id: int, sql_query: str
     ) -> TextClause:
-        sql_query = sql_query.strip()
+        sql = sql_query.strip().upper()
+        forbidden = {";", "DROP", "DELETE", "UPDATE", "INSERT"}
 
-        if not registrant_id:
-            raise ValueError("registrant_id cannot be None or zero")
-        if not sql_query.upper().startswith("SELECT"):
-            raise ValueError("Invalid SQL query: Must be a valid SELECT statement")
+        if not sql.startswith("SELECT") or any(k in sql for k in forbidden):
+            raise ValueError("Unsafe SQL detected")
 
-        # Override due to res_partner mapping
-        if "WHERE" in sql_query.upper():
-            sql_query += f" AND res_partner.id = :registrant_id"
-        else:
-            sql_query += f" WHERE res_partner.id = :registrant_id"
+        if "RES_PARTNER" not in sql:
+            raise ValueError("Query must target res_partner only")
 
-        params = {"registrant_id": registrant_id}
+        clause = "AND" if "WHERE" in sql else "WHERE"
+        final_sql = f"{sql_query} {clause} res_partner.id = :registrant_id"
 
-        return text(sql_query).params(**params)
+        return text(final_sql).params(registrant_id=registrant_id)
