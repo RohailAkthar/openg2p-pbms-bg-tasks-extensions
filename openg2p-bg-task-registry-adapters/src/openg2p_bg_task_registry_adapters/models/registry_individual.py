@@ -8,4 +8,4 @@ class G2PIndividualRegistry(G2PRegistry):
 
     name = mapped_column(String, nullable=False)
     gender = mapped_column(String, nullable=True)  # 'male' or 'female'
-    birthdate_date = mapped_column(Date, nullable=True)
+    birthdate = mapped_column(Date, nullable=True)

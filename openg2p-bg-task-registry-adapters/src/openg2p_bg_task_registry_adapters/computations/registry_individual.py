@@ -201,7 +201,7 @@ class RegistryIndividual(RegistryInterface):
                     link_registry_id=individual["registrant_id_str"],
                     name=individual["name"],
                     gender=individual["gender"],
-                    birthdate_date=individual["birthdate_date"],
+                    birthdate=individual["birthdate"],
                 )
                 for individual in individual_search_results
             ]
@@ -252,8 +252,8 @@ class RegistryIndividual(RegistryInterface):
 
             registrants = self.get_registrants_by_ids(registrant_ids, sr_session)
             for registrant in registrants:
-                if registrant.birthdate_date:
-                    ages.append(self.calculate_age(registrant.birthdate_date))
+                if registrant.birthdate:
+                    ages.append(self.calculate_age(registrant.birthdate))
 
         individual_summary = BeneficiaryListSummaryIndividualModel(
             program_id=base_summary.program_id,
