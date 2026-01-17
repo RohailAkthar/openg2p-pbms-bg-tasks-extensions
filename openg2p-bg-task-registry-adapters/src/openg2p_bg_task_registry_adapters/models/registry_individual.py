@@ -8,7 +8,7 @@ class G2PIndividualRegistry(G2PRegistry):
 
     # Safe alias for 'id' as 'link_registry_id' is not a separate column in res_partner
     # Safe alias for 'id' as 'link_registry_id' is not a separate column in res_partner
-    link_registry_id = column_property(cast(id, String))
+    link_registry_id = column_property(cast(G2PRegistry.id, String))
 
     name = mapped_column(String, nullable=False)
     gender = mapped_column(String, nullable=True)  # 'male' or 'female'
