@@ -198,7 +198,7 @@ class RegistryIndividual(RegistryInterface):
             beneficiaries = [
                 G2PIndividualRegistryPayload(
                     id=individual["id"],
-                    link_registry_id=str(individual["id"]),
+                    link_registry_id=individual["registrant_id_str"],
                     name=individual["name"],
                     gender=individual["gender"],
                     birthdate_date=individual["birthdate_date"],
@@ -246,6 +246,7 @@ class RegistryIndividual(RegistryInterface):
         for beneficiary_list_detail in beneficiary_list_details:
             registrant_ids = []
             for registrant_detail in beneficiary_list_detail.registrant_details:
+                registrant_detail["registrant_id"] = str(registrant_detail["registrant_id"])
                 registrant_detail = RegistrantDetails(**registrant_detail)
                 registrant_ids.append(registrant_detail.registrant_id)
 
@@ -324,6 +325,7 @@ class RegistryIndividual(RegistryInterface):
         for beneficiary_list_detail in beneficiary_list_details:
             registrant_ids = []
             for registrant_detail in beneficiary_list_detail.registrant_details:
+                registrant_detail["registrant_id"] = str(registrant_detail["registrant_id"])
                 registrant_detail = RegistrantDetails(**registrant_detail)
                 registrant_ids.append(registrant_detail.registrant_id)
 
@@ -341,6 +343,7 @@ class RegistryIndividual(RegistryInterface):
 
         for beneficiary_list_detail in beneficiary_list_details:
             for registrant_detail in beneficiary_list_detail.registrant_details:
+                registrant_detail["registrant_id"] = str(registrant_detail["registrant_id"])
                 registrant_detail = RegistrantDetails(**registrant_detail)
                 registrant = registrant_map_from_registry.get(
                     str(registrant_detail.registrant_id)
@@ -394,7 +397,7 @@ class RegistryIndividual(RegistryInterface):
         # Override due to res_partner mapping
         sql_query = text(
             f"""
-            SELECT {multiplier} FROM res_partner
+            SELECT {multiplier}::TEXT FROM res_partner
             WHERE id = :registrant_id
             """
         )
@@ -424,7 +427,7 @@ class RegistryIndividual(RegistryInterface):
 
         sql_query = text(
             f"""
-            SELECT * FROM {table_name}
+            SELECT *, id::TEXT as registrant_id_str FROM {table_name}
             WHERE id IN ({registrant_placeholders}) {where_clause_sql}
             ORDER BY {order_by}
             OFFSET :offset
