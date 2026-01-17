@@ -8,9 +8,10 @@ class G2PIndividualRegistry(G2PRegistry):
 
     @declared_attr
     def link_registry_id(cls):
-        # Safe alias for 'id' as 'link_registry_id' is not a separate column in res_partner
-        return column_property(cast(cls.id, String))
+        return column_property(
+            cast(cls.id, String).label("link_registry_id")
+        )
 
     name = mapped_column(String, nullable=False)
-    gender = mapped_column(String, nullable=True)  # 'male' or 'female'
+    gender = mapped_column(String, nullable=True)
     birthdate = mapped_column(Date, nullable=True)
