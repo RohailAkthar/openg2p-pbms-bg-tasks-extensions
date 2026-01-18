@@ -192,7 +192,7 @@ class RegistryIndividual(RegistryInterface):
             registrant_ids, search_query
         )
 
-        if not query:
+        if query is None:
             return 0
 
         return (await sr_session.execute(query, params)).scalar_one()
@@ -286,7 +286,7 @@ class RegistryIndividual(RegistryInterface):
         sql_query = self.construct_multiplier_sql_query(
             multiplier, target_registry="individual"
         )
-        if not sql_query:
+        if sql_query is None:
             return 1
 
         result = sr_session.execute(
