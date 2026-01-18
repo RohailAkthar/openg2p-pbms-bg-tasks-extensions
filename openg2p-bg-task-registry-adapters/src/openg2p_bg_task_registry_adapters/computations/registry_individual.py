@@ -137,11 +137,21 @@ class RegistryIndividual(RegistryInterface):
             )
         )
 
-        registrant_ids: List[int] = list({
-            int(r["registrant_id"])
-            for details in result.scalars().all()
-            for r in details
-        })
+        registrant_ids: List[int] = []
+        for details in result.scalars().all():
+            if isinstance(details, list):
+                for r in details:
+                    try:
+                        registrant_ids.append(int(r["registrant_id"]))
+                    except (KeyError, TypeError, ValueError):
+                        continue
+            elif isinstance(details, dict):
+                try:
+                    registrant_ids.append(int(details["registrant_id"]))
+                except (KeyError, TypeError, ValueError):
+                    pass
+        
+        registrant_ids = list(set(registrant_ids))
 
         if not registrant_ids:
             return BeneficiarySearchResponsePayload(
@@ -378,17 +388,28 @@ class RegistryIndividual(RegistryInterface):
         order_sql = ALLOWED_ORDER_BY.get(key, "id ASC")
 
         where = ""
-        params: Dict[str, Any] = {"registrant_ids": registrant_ids}
+        params: Dict[str, Any] = {}
 
-        if search_query:
-            where = "AND name ILIKE :search_query"
-            params["search_query"] = f"%{search_query}%"
+        if search_query and search_query != "[]":
+            search_query = search_query.replace("“", '"').replace("”", '"')
+            search_query = search_query.replace("‘", "'").replace("’", "'")
+            if any(k in search_query.upper() for k in ["RES_PARTNER", '"', "'", "="]):
+                where = f"AND ({search_query})"
+            else:
+                where = "AND name ILIKE :search_query"
+                params["search_query"] = f"%{search_query}%"
+
+        registrant_placeholders = ", ".join(
+            [f":registrant_id_{i}" for i in range(len(registrant_ids))]
+        )
+        for i, rid in enumerate(registrant_ids):
+            params[f"registrant_id_{i}"] = rid
 
         query = text(
             f"""
             SELECT id, name, gender, birthdate, id::TEXT AS registrant_id_str
             FROM res_partner
-            WHERE id = ANY(:registrant_ids) {where}
+            WHERE id IN ({registrant_placeholders}) {where}
             ORDER BY {order_sql}
             OFFSET :offset LIMIT :limit
             """
@@ -409,17 +430,28 @@ class RegistryIndividual(RegistryInterface):
         search_query: Optional[str],
     ) -> Tuple[TextClause, Dict[str, Any]]:
         where = ""
-        params: Dict[str, Any] = {"registrant_ids": registrant_ids}
+        params: Dict[str, Any] = {}
 
-        if search_query:
-            where = "AND name ILIKE :search_query"
-            params["search_query"] = f"%{search_query}%"
+        if search_query and search_query != "[]":
+            search_query = search_query.replace("“", '"').replace("”", '"')
+            search_query = search_query.replace("‘", "'").replace("’", "'")
+            if any(k in search_query.upper() for k in ["RES_PARTNER", '"', "'", "="]):
+                where = f"AND ({search_query})"
+            else:
+                where = "AND name ILIKE :search_query"
+                params["search_query"] = f"%{search_query}%"
+
+        registrant_placeholders = ", ".join(
+            [f":registrant_id_{i}" for i in range(len(registrant_ids))]
+        )
+        for i, rid in enumerate(registrant_ids):
+            params[f"registrant_id_{i}"] = rid
 
         query = text(
             f"""
             SELECT COUNT(*)
             FROM res_partner
-            WHERE id = ANY(:registrant_ids) {where}
+            WHERE id IN ({registrant_placeholders}) {where}
             """
         )
 
