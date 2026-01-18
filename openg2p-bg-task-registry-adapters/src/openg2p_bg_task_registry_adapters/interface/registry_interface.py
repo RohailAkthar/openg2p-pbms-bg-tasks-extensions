@@ -37,7 +37,7 @@ class RegistryInterface(ABC):
 
     @abstractmethod
     def get_summary_sync(
-        self, beneficiary_list_id: str, bg_task_session: Session
+        self, beneficiary_list_id: str, bg_task_session: Session, formated: bool = False
     ) -> BeneficiaryListSummaryPayload:
         """
         Abstract method to get synchronous summary statistics for a given beneficiary_list_id.

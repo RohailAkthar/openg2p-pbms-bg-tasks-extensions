@@ -38,6 +38,7 @@ class RegistryIndividual(RegistryInterface):
         self,
         beneficiary_list_id: str,
         bg_task_session: AsyncSession,
+        formated: bool = False,
     ) -> BeneficiaryListSummaryIndividualPayload:
         result = await bg_task_session.execute(
             select(BeneficiaryListSummaryIndividualModel).where(
@@ -49,10 +50,10 @@ class RegistryIndividual(RegistryInterface):
         if not summary:
             raise ValueError(f"No summary found for {beneficiary_list_id}")
 
-        return self._build_summary_payload(summary)
+        return self._build_summary_payload(summary, formated=formated)
 
     def get_summary_sync(
-        self, beneficiary_list_id: str, bg_task_session: Session
+        self, beneficiary_list_id: str, bg_task_session: Session, formated: bool = False
     ) -> BeneficiaryListSummaryIndividualPayload:
         summary = (
             bg_task_session.query(BeneficiaryListSummaryIndividualModel)
@@ -62,10 +63,10 @@ class RegistryIndividual(RegistryInterface):
         if not summary:
             raise ValueError(f"No summary found for {beneficiary_list_id}")
 
-        return self._build_summary_payload(summary)
+        return self._build_summary_payload(summary, formated=formated)
 
     def _build_summary_payload(
-        self, summary: BeneficiaryListSummaryIndividualModel
+        self, summary: BeneficiaryListSummaryIndividualModel, formated: bool = False
     ) -> BeneficiaryListSummaryIndividualPayload:
         return BeneficiaryListSummaryIndividualPayload(
             beneficiary_list_summary=BeneficiaryListSummary(
@@ -80,10 +81,18 @@ class RegistryIndividual(RegistryInterface):
                 average_entitlement_per_registrant=summary.average_entitlement_per_person,
             ),
             registry_summary=BeneficiaryListSummaryIndividual(
-                age_mean=self._fmt_age(summary.age_mean, summary.age_units),
-                age_q1=self._fmt_age(summary.age_q1, summary.age_units),
-                age_q2=self._fmt_age(summary.age_q2, summary.age_units),
-                age_q3=self._fmt_age(summary.age_q3, summary.age_units),
+                age_mean=self._fmt_age(summary.age_mean, summary.age_units)
+                if formated
+                else (str(summary.age_mean) if summary.age_mean is not None else None),
+                age_q1=self._fmt_age(summary.age_q1, summary.age_units)
+                if formated
+                else (str(summary.age_q1) if summary.age_q1 is not None else None),
+                age_q2=self._fmt_age(summary.age_q2, summary.age_units)
+                if formated
+                else (str(summary.age_q2) if summary.age_q2 is not None else None),
+                age_q3=self._fmt_age(summary.age_q3, summary.age_units)
+                if formated
+                else (str(summary.age_q3) if summary.age_q3 is not None else None),
                 average_entitlement_female=summary.average_entitlement_female,
                 average_entitlement_male=summary.average_entitlement_male,
                 entitlement_amount_q1=summary.entitlement_amount_q1,
