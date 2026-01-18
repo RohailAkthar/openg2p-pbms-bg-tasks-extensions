@@ -81,14 +81,14 @@ class RegistryInterface(ABC):
         raise NotImplementedError("Subclasses must implement get_registrants_by_ids()")
 
     @abstractmethod
-    def get_is_registant_entitled(
+    def get_is_registrant_entitled(
         self, registrant_id: str, sql_query: str, sr_session: Session
     ) -> bool:
         """
         Abstract method to check if a registrant is entitled based on custom SQL and session.
         """
         raise NotImplementedError(
-            "Subclasses must implement get_is_registant_entitled()"
+            "Subclasses must implement get_is_registrant_entitled()"
         )
 
     @abstractmethod

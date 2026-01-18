@@ -246,7 +246,7 @@ class RegistryIndividual(RegistryInterface):
     # Entitlement Celery Worker Methods
     # =================================
     def get_is_registrant_entitled(
-        self, registrant_id: int, sql_query: str, sr_session: Session
+        self, registrant_id: str, sql_query: str, sr_session: Session
     ) -> bool:
         """
         SECURITY NOTE:
@@ -261,7 +261,7 @@ class RegistryIndividual(RegistryInterface):
         return sr_session.execute(sql_query_with_registrant_id).fetchone() is not None
 
     def get_entitlement_multiplier(
-        self, multiplier: str, registrant_id: int, sr_session: Session
+        self, multiplier: str, registrant_id: str, sr_session: Session
     ) -> int:
         if not multiplier or multiplier == "none":
             return 1
@@ -432,7 +432,7 @@ class RegistryIndividual(RegistryInterface):
         )
 
     def construct_get_is_registrant_entitled_sql_query(
-        self, registrant_id: int, sql_query: str
+        self, registrant_id: str, sql_query: str
     ) -> TextClause:
         sql = sql_query.strip().upper()
         forbidden = {";", "DROP", "DELETE", "UPDATE", "INSERT"}
