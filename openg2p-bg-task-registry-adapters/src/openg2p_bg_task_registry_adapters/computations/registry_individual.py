@@ -179,6 +179,13 @@ class RegistryIndividual(RegistryInterface):
                 gender=row["gender"],
                 birthdate=row["birthdate"],
                 region_name=row["region_name"],
+                district_name=row["district_name"],
+                benf_zan_id=row["benf_zan_id"],
+                nominee_first_name=row["nominee_first_name"],
+                nominee_gender=row["nominee_gender"],
+                nominee_zanid=row["nominee_zanid"],
+                nominee_region=row["nominee_region"],
+                nominee_district=row["nominee_district"],
             )
             for row in rows
         ]
@@ -408,9 +415,13 @@ class RegistryIndividual(RegistryInterface):
 
         query = text(
             f"""
-            SELECT res_partner.id, res_partner.name, res_partner.gender, res_partner.birthdate, res_partner.id::TEXT AS registrant_id_str, r.name AS region_name
+            SELECT res_partner.id, res_partner.name, res_partner.gender, res_partner.birthdate, res_partner.id::TEXT AS registrant_id_str, 
+                   r.name AS region_name, d.name AS district_name,
+                   res_partner.benf_zan_id, res_partner.nominee_first_name, res_partner.nominee_gender, 
+                   res_partner.nominee_zanid, res_partner.nominee_region, res_partner.nominee_district
             FROM res_partner
             LEFT JOIN g2p_region r ON res_partner.region = r.id
+            LEFT JOIN g2p_district d ON res_partner.district = d.id
             WHERE res_partner.id IN ({registrant_placeholders}) {where}
             ORDER BY {order_sql}
             OFFSET :offset LIMIT :limit
