@@ -8,3 +8,4 @@ class G2PIndividualRegistryPayload(G2PRegistryPayload):
     name: str
     gender: Optional[str] = None
     birthdate: Optional[date]
+    region_name: Optional[str] = None

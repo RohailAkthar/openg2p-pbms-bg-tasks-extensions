@@ -178,6 +178,7 @@ class RegistryIndividual(RegistryInterface):
                 name=row["name"],
                 gender=row["gender"],
                 birthdate=row["birthdate"],
+                region_name=row["region_name"],
             )
             for row in rows
         ]
@@ -407,9 +408,10 @@ class RegistryIndividual(RegistryInterface):
 
         query = text(
             f"""
-            SELECT id, name, gender, birthdate, id::TEXT AS registrant_id_str
-            FROM res_partner
-            WHERE id IN ({registrant_placeholders}) {where}
+            SELECT p.id, p.name, p.gender, p.birthdate, p.id::TEXT AS registrant_id_str, r.name AS region_name
+            FROM res_partner p
+            LEFT JOIN g2p_region r ON p.region = r.id
+            WHERE p.id IN ({registrant_placeholders}) {where}
             ORDER BY {order_sql}
             OFFSET :offset LIMIT :limit
             """
