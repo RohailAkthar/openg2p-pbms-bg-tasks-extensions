@@ -380,10 +380,10 @@ class RegistryIndividual(RegistryInterface):
         page: int,
     ) -> Tuple[TextClause, Dict[str, Any]]:
         ALLOWED_ORDER_BY = {
-            "id asc": "id ASC",
-            "id desc": "id DESC",
-            "name asc": "name ASC",
-            "name desc": "name DESC",
+            "id asc": "res_partner.id ASC",
+            "id desc": "res_partner.id DESC",
+            "name asc": "res_partner.name ASC",
+            "name desc": "res_partner.name DESC",
         }
         key = order_by.lower() if isinstance(order_by, str) else "id asc"
         order_sql = ALLOWED_ORDER_BY.get(key, "id ASC")
@@ -408,10 +408,10 @@ class RegistryIndividual(RegistryInterface):
 
         query = text(
             f"""
-            SELECT p.id, p.name, p.gender, p.birthdate, p.id::TEXT AS registrant_id_str, r.name AS region_name
-            FROM res_partner p
-            LEFT JOIN g2p_region r ON p.region = r.id
-            WHERE p.id IN ({registrant_placeholders}) {where}
+            SELECT res_partner.id, res_partner.name, res_partner.gender, res_partner.birthdate, res_partner.id::TEXT AS registrant_id_str, r.name AS region_name
+            FROM res_partner
+            LEFT JOIN g2p_region r ON res_partner.region = r.id
+            WHERE res_partner.id IN ({registrant_placeholders}) {where}
             ORDER BY {order_sql}
             OFFSET :offset LIMIT :limit
             """
