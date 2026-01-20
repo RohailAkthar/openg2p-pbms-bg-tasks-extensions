@@ -14,6 +14,9 @@ class BeneficiaryListSummaryIndividual(BeneficiaryListSummary):
 
     average_entitlement_female = mapped_column(JSON, nullable=True)
     average_entitlement_male = mapped_column(JSON, nullable=True)
+    entitlement_amount_q1 = mapped_column(JSON, nullable=True)
+    entitlement_amount_q2 = mapped_column(JSON, nullable=True)
+    entitlement_amount_q3 = mapped_column(JSON, nullable=True)
     entitlement_amount_male_q1 = mapped_column(JSON, nullable=True)
     entitlement_amount_male_q2 = mapped_column(JSON, nullable=True)
     entitlement_amount_male_q3 = mapped_column(JSON, nullable=True)
