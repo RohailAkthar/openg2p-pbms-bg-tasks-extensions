@@ -194,6 +194,18 @@ class RegistryIndividual(RegistryInterface):
             "magharibi_a": "Magharibi A",
         }
 
+        payment_mode_map = {
+            "mobile_wallet": "Mobile Wallet",
+            "bank_transfer": "Bank Transfer",
+            "cash": "Cash",
+        }
+
+        def format_bool(val):
+            if val is None:
+                return None
+            s = str(val).strip().lower()
+            return "Yes" if s in ("true", "yes", "1", "t") else "No"
+
         beneficiaries = [
             G2PIndividualRegistryPayload(
                 id=row["id"],
@@ -207,19 +219,19 @@ class RegistryIndividual(RegistryInterface):
                 street=row["street"],
                 phone=row["phone"],
                 benf_post_code=row["benf_post_code"],
-                disability=row["disability"],
-                is_receiving_allowance=row["is_receiving_allowance"],
-                has_health_insurance=row["has_health_insurance"],
-                other_id_available=row["other_id_available"],
+                disability=format_bool(row["disability"]),
+                is_receiving_allowance=format_bool(row["is_receiving_allowance"]),
+                has_health_insurance=format_bool(row["has_health_insurance"]),
+                other_id_available=format_bool(row["other_id_available"]),
                 other_id_type=row["other_id_type"],
                 other_id_name=row["other_id_name"],
                 other_id_number=row["other_id_number"],
-                payment_mode=row["payment_mode"],
+                payment_mode=payment_mode_map.get(row["payment_mode"], row["payment_mode"]),
                 bank_name=row["bank_name"],
                 account_num=row["account_num"],
                 account_name=row["account_name"],
                 mobile_wallet=row["mobile_wallet"],
-                other_pension=row["other_pension"],
+                other_pension=format_bool(row["other_pension"]),
                 scheme_name=row["scheme_name"],
                 nominee_first_name=row["nominee_first_name"],
                 nominee_last_name=row["nominee_last_name"],
