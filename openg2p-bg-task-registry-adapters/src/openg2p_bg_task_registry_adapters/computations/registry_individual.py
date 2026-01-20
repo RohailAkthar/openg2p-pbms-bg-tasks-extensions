@@ -2,7 +2,7 @@ import logging
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import numpy as np
-from openg2p_bg_task_models.models import BeneficiaryList, BeneficiaryListDetails
+from openg2p_bg_task_models.models import BeneficiaryListDetails
 from openg2p_bg_task_models.schemas import (
     BeneficiarySearchResponsePayload,
     RegistrantDetails,
@@ -239,22 +239,14 @@ class RegistryIndividual(RegistryInterface):
             if r.birthdate
         ]
 
-        summary = (
-            bg_task_session.query(BeneficiaryListSummaryIndividualModel)
-            .filter_by(beneficiary_list_id=base_summary.beneficiary_list_id)
-            .first()
+        summary = BeneficiaryListSummaryIndividualModel(
+            program_id=base_summary.program_id,
+            program_mnemonic=base_summary.program_mnemonic,
+            target_registry=base_summary.target_registry,
+            beneficiary_list_id=base_summary.beneficiary_list_id,
+            number_of_registrants=base_summary.number_of_registrants,
+            date_created=base_summary.date_created,
         )
-
-        if not summary:
-            summary = BeneficiaryListSummaryIndividualModel(
-                program_id=base_summary.program_id,
-                program_mnemonic=base_summary.program_mnemonic,
-                target_registry=base_summary.target_registry,
-                beneficiary_list_id=base_summary.beneficiary_list_id,
-                number_of_registrants=base_summary.number_of_registrants,
-                date_created=base_summary.date_created,
-            )
-            bg_task_session.add(summary)
 
         if ages:
             a = np.array(ages)
@@ -262,6 +254,8 @@ class RegistryIndividual(RegistryInterface):
             summary.age_q2 = round(float(np.percentile(a, 50, method="midpoint")), 2)
             summary.age_q3 = round(float(np.percentile(a, 75, method="midpoint")), 2)
             summary.age_mean = round(float(np.mean(a)), 2)
+
+        bg_task_session.add(summary)
 
     def get_registrants_by_ids(
         self, registrant_ids: List[int], sr_session: Session
@@ -366,43 +360,28 @@ class RegistryIndividual(RegistryInterface):
         male_stats = self.compute_stats_dict(male)
         female_stats = self.compute_stats_dict(female)
 
-        try:
-            bg_task_session.execute(
-                update(BeneficiaryListSummaryIndividualModel)
-                .where(
-                    BeneficiaryListSummaryIndividualModel.beneficiary_list_id
-                    == beneficiary_list_id
-                )
-                .values(
-                    total_disbursement_quantity=dict(stats["total"]),
-                    average_entitlement_per_person=dict(stats["average"]),
-                    entitlement_amount_q1=dict(stats["q1"]),
-                    entitlement_amount_q2=dict(stats["q2"]),
-                    entitlement_amount_q3=dict(stats["q3"]),
-                    average_entitlement_male=dict(male_stats["average"]),
-                    entitlement_amount_male_q1=dict(male_stats["q1"]),
-                    entitlement_amount_male_q2=dict(male_stats["q2"]),
-                    entitlement_amount_male_q3=dict(male_stats["q3"]),
-                    average_entitlement_female=dict(female_stats["average"]),
-                    entitlement_amount_female_q1=dict(female_stats["q1"]),
-                    entitlement_amount_female_q2=dict(female_stats["q2"]),
-                    entitlement_amount_female_q3=dict(female_stats["q3"]),
-                )
+        bg_task_session.execute(
+            update(BeneficiaryListSummaryIndividualModel)
+            .where(
+                BeneficiaryListSummaryIndividualModel.beneficiary_list_id
+                == beneficiary_list_id
             )
-
-            bg_task_session.execute(
-                update(BeneficiaryList)
-                .where(BeneficiaryList.id == beneficiary_list_id)
-                .values(entitlement_summary_status="complete")
+            .values(
+                total_disbursement_quantity=dict(stats["total"]),
+                average_entitlement_per_person=dict(stats["average"]),
+                entitlement_amount_q1=dict(stats["q1"]),
+                entitlement_amount_q2=dict(stats["q2"]),
+                entitlement_amount_q3=dict(stats["q3"]),
+                average_entitlement_male=dict(male_stats["average"]),
+                entitlement_amount_male_q1=dict(male_stats["q1"]),
+                entitlement_amount_male_q2=dict(male_stats["q2"]),
+                entitlement_amount_male_q3=dict(male_stats["q3"]),
+                average_entitlement_female=dict(female_stats["average"]),
+                entitlement_amount_female_q1=dict(female_stats["q1"]),
+                entitlement_amount_female_q2=dict(female_stats["q2"]),
+                entitlement_amount_female_q3=dict(female_stats["q3"]),
             )
-
-            bg_task_session.commit()
-            _logger.info(f"BeneficiaryList {beneficiary_list_id} entitlement_summary_status set to complete")
-
-        except Exception as e:
-            bg_task_session.rollback()
-            _logger.error(f"Failed to update entitlement_summary_status for {beneficiary_list_id}: {e}")
-            raise e
+        )
 
     # ===============================
     # SQL Construction Overrides
