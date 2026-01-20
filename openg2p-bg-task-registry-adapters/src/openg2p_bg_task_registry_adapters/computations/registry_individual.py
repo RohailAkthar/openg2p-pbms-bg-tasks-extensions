@@ -171,6 +171,29 @@ class RegistryIndividual(RegistryInterface):
             sr_session, registrant_ids, search_query
         )
 
+        # Hardcoded maps for Nominee Location
+        nominee_region_map = {
+            "mjini_magharibi": "Mjini Magharibi",
+            "kusini_pemba": "Kusini Pemba",
+            "kaskazini_pemba": "Kaskazini Pemba",
+            "kaskazini_unguja": "Kaskazini Unguja",
+            "kusini_unguja": "Kusini Unguja",
+        }
+        
+        nominee_district_map = {
+            "magharibi_b": "Magharibi B",
+            "mkoani": "Mkoani",
+            "micheweni": "Micheweni",
+            "chake_chake": "Chake Chake",
+            "wete": "Wete",
+            "kaskazini_a": "Kaskazini A",
+            "kaskazini_b": "Kaskazini B",
+            "kati": "Kati",
+            "kusini": "Kusini",
+            "mjini": "Mjini",
+            "magharibi_a": "Magharibi A",
+        }
+
         beneficiaries = [
             G2PIndividualRegistryPayload(
                 id=row["id"],
@@ -184,8 +207,8 @@ class RegistryIndividual(RegistryInterface):
                 nominee_first_name=row["nominee_first_name"],
                 nominee_gender=row["nominee_gender"],
                 nominee_zanid=row["nominee_zanid"],
-                nominee_region=row["nominee_region"],
-                nominee_district=row["nominee_district"],
+                nominee_region=nominee_region_map.get(row["nominee_region"], row["nominee_region"]),
+                nominee_district=nominee_district_map.get(row["nominee_district"], row["nominee_district"]),
             )
             for row in rows
         ]
