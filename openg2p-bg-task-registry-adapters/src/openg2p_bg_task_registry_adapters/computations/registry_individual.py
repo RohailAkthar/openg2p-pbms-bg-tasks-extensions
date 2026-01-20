@@ -287,6 +287,14 @@ class RegistryIndividual(RegistryInterface):
         )
         return sr_session.execute(sql_query_with_registrant_id).fetchone() is not None
 
+    def get_is_registant_entitled(
+        self, registrant_id: str, sql_query: str, sr_session: Session
+    ) -> bool:
+        """
+        Alias for get_is_registrant_entitled to handle typo in celery worker.
+        """
+        return self.get_is_registrant_entitled(registrant_id, sql_query, sr_session)
+
     def get_entitlement_multiplier(
         self, multiplier: str, registrant_id: str, sr_session: Session
     ) -> int:
