@@ -192,12 +192,13 @@ class RegistryIndividual(RegistryInterface):
             "kusini": "Kusini",
             "mjini": "Mjini",
             "magharibi_a": "Magharibi A",
+            "mjini_magharibi_a": "Mjini Magharibi A",
+            "mjini_magharibi_b": "Mjini Magharibi B",
         }
 
         payment_mode_map = {
             "mobile_wallet": "Mobile Wallet",
-            "bank_transfer": "Bank Transfer",
-            "cash": "Cash",
+            "bank_transfer": "Bank",
         }
 
         def format_bool(val):
@@ -238,7 +239,7 @@ class RegistryIndividual(RegistryInterface):
                 nominee_mobile=row["nominee_mobile"],
                 nominee_gender=row["nominee_gender"],
                 nominee_zanid=row["nominee_zanid"],
-                nominee_rel_benf=row["nominee_rel_benf"],
+                nominee_rel_benf=row["nominee_rel_benf"].title() if row["nominee_rel_benf"] else None,
                 nominee_house_street=row["nominee_house_street"],
                 nominee_shehia=row["nominee_shehia"],
                 nominee_post_code=row["nominee_post_code"],
