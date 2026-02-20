@@ -137,17 +137,17 @@ class RegistryIndividual(RegistryInterface):
             )
         )
 
-        registrant_ids: List[int] = []
+        registrant_ids: List[str] = []
         for details in result.scalars().all():
             if isinstance(details, list):
                 for r in details:
                     try:
-                        registrant_ids.append(int(r["registrant_id"]))
+                        registrant_ids.append(str(r["registrant_id"]))
                     except (KeyError, TypeError, ValueError):
                         continue
             elif isinstance(details, dict):
                 try:
-                    registrant_ids.append(int(details["registrant_id"]))
+                    registrant_ids.append(str(details["registrant_id"]))
                 except (KeyError, TypeError, ValueError):
                     pass
         
@@ -280,8 +280,8 @@ class RegistryIndividual(RegistryInterface):
         sr_session: Session,
         bg_task_session: Session,
     ):
-        registrant_ids: Set[int] = {
-            int(RegistrantDetails(**r).registrant_id)
+        registrant_ids: Set[str] = {
+            str(RegistrantDetails(**r).registrant_id)
             for d in beneficiary_list_details
             for r in d.registrant_details
         }
@@ -313,14 +313,14 @@ class RegistryIndividual(RegistryInterface):
         bg_task_session.add(summary)
 
     def get_registrants_by_ids(
-        self, registrant_ids: List[int], sr_session: Session
+        self, registrant_ids: List[str], sr_session: Session
     ) -> List[G2PIndividualRegistry]:
         if not registrant_ids:
             return []
 
         return list(
             sr_session.query(G2PIndividualRegistry)
-            .filter(G2PIndividualRegistry.id.in_(registrant_ids))
+            .filter(G2PIndividualRegistry.benf_zan_id.in_(registrant_ids))
             .yield_per(500)
         )
 
@@ -386,13 +386,13 @@ class RegistryIndividual(RegistryInterface):
         )
 
         registrant_ids = {
-            int(RegistrantDetails(**r).registrant_id)
+            str(RegistrantDetails(**r).registrant_id)
             for d in details
             for r in d.registrant_details
         }
 
         registrants = self.get_registrants_by_ids(list(registrant_ids), sr_session)
-        registry_map = {r.id: r for r in registrants}
+        registry_map = {r.benf_zan_id: r for r in registrants}
 
         entitlements: Dict[int, List[float]] = {}
         male: Dict[int, List[float]] = {}
@@ -401,7 +401,7 @@ class RegistryIndividual(RegistryInterface):
         for d in details:
             for r in d.registrant_details:
                 rd = RegistrantDetails(**r)
-                reg = registry_map.get(int(rd.registrant_id))
+                reg = registry_map.get(str(rd.registrant_id))
                 gender = reg.gender if reg else None
 
                 for code, value in rd.entitlement.items():
@@ -443,7 +443,7 @@ class RegistryIndividual(RegistryInterface):
     # ===============================
     def construct_beneficiary_search_sql_query(
         self,
-        registrant_ids: List[int],
+        registrant_ids: List[str],
         search_query: Optional[str],
         order_by: str,
         page_size: int,
@@ -491,7 +491,7 @@ class RegistryIndividual(RegistryInterface):
             FROM res_partner
             LEFT JOIN g2p_region r ON res_partner.region = r.id
             LEFT JOIN g2p_district d ON res_partner.district = d.id
-            WHERE res_partner.id IN ({registrant_placeholders}) {where}
+            WHERE res_partner.benf_zan_id IN ({registrant_placeholders}) {where}
             ORDER BY {order_sql}
             OFFSET :offset LIMIT :limit
             """
@@ -508,7 +508,7 @@ class RegistryIndividual(RegistryInterface):
 
     def construct_beneficiary_search_count_sql_query(
         self,
-        registrant_ids: List[int],
+        registrant_ids: List[str],
         search_query: Optional[str],
     ) -> Tuple[TextClause, Dict[str, Any]]:
         where = ""
@@ -533,7 +533,7 @@ class RegistryIndividual(RegistryInterface):
             f"""
             SELECT COUNT(*)
             FROM res_partner
-            WHERE id IN ({registrant_placeholders}) {where}
+            WHERE benf_zan_id IN ({registrant_placeholders}) {where}
             """
         )
 
@@ -550,7 +550,7 @@ class RegistryIndividual(RegistryInterface):
             f"""
             SELECT {multiplier}::TEXT
             FROM res_partner
-            WHERE id = :registrant_id
+            WHERE benf_zan_id = :registrant_id
             """
         )
 
@@ -567,6 +567,6 @@ class RegistryIndividual(RegistryInterface):
             raise ValueError("Query must target res_partner only")
 
         clause = "AND" if "WHERE" in sql else "WHERE"
-        final_sql = f"{sql_query} {clause} res_partner.id = :registrant_id"
+        final_sql = f"{sql_query} {clause} res_partner.benf_zan_id = :registrant_id"
 
         return text(final_sql).params(registrant_id=registrant_id)
