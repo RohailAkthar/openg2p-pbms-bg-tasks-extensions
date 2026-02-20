@@ -22,10 +22,6 @@ class G2PIndividualRegistryPayload(G2PRegistryPayload):
     disability: Optional[str] = None
     is_receiving_allowance: Optional[str] = None
     has_health_insurance: Optional[str] = None
-    other_id_available: Optional[str] = None
-    other_id_type: Optional[str] = None
-    other_id_name: Optional[str] = None
-    other_id_number: Optional[str] = None
     payment_mode: Optional[str] = None
     bank_name: Optional[str] = None
     account_num: Optional[str] = None
