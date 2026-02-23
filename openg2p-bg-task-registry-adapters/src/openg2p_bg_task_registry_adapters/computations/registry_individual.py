@@ -129,7 +129,7 @@ class RegistryIndividual(RegistryInterface):
             raise ValueError("Only individual registry supported")
 
         page = max(page, 1)
-        page_size = min(max(page_size, 1), 100)
+        page_size = min(max(page_size, 1), 1000)
 
         result = await bg_task_session.execute(
             select(BeneficiaryListDetails.registrant_details).where(
