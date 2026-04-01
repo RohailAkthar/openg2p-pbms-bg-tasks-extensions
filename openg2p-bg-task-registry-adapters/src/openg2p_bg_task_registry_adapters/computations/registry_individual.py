@@ -231,6 +231,7 @@ class RegistryIndividual(RegistryInterface):
                 other_pension=format_bool(row["other_pension"]),
                 scheme_name=row["scheme_name"],
                 nominee_first_name=row["nominee_first_name"],
+                nominee_middle_name=row["nominee_middle_name"],
                 nominee_last_name=row["nominee_last_name"],
                 nominee_mobile=row["nominee_mobile"],
                 nominee_gender=row["nominee_gender"],
@@ -487,7 +488,7 @@ class RegistryIndividual(RegistryInterface):
                    res_partner.disability, res_partner.is_receiving_allowance, res_partner.has_health_insurance,
                    res_partner.payment_mode, res_partner.bank_name, res_partner.account_num, res_partner.account_name,
                    res_partner.mobile_wallet, res_partner.other_pension, res_partner.scheme_name,
-                   res_partner.nominee_first_name, res_partner.nominee_last_name, res_partner.nominee_mobile,
+                   res_partner.nominee_first_name, res_partner.nominee_middle_name, res_partner.nominee_last_name, res_partner.nominee_mobile,
                    res_partner.nominee_gender, res_partner.nominee_zanid, res_partner.nominee_rel_benf,
                    res_partner.nominee_house_street, res_partner.nominee_shehia, res_partner.nominee_region,
                    res_partner.nominee_district, res_partner.nominee_post_code
