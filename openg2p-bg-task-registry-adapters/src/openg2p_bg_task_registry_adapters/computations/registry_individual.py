@@ -318,11 +318,18 @@ class RegistryIndividual(RegistryInterface):
         if not registrant_ids:
             return []
 
-        return list(
-            sr_session.query(G2PIndividualRegistry)
-            .filter(G2PIndividualRegistry.benf_zan_id.in_(registrant_ids))
-            .yield_per(500)
-        )
+        BATCH_SIZE = 5000
+        results = []
+
+        for i in range(0, len(registrant_ids), BATCH_SIZE):
+            batch = registrant_ids[i:i + BATCH_SIZE]
+            results.extend(
+                sr_session.query(G2PIndividualRegistry)
+                .filter(G2PIndividualRegistry.benf_zan_id.in_(batch))
+                .all()
+            )
+
+        return results
 
     # =================================
     # Entitlement Celery Worker Methods
@@ -470,11 +477,7 @@ class RegistryIndividual(RegistryInterface):
                 where = "AND name ILIKE :search_query"
                 params["search_query"] = f"%{search_query}%"
 
-        registrant_placeholders = ", ".join(
-            [f":registrant_id_{i}" for i in range(len(registrant_ids))]
-        )
-        for i, rid in enumerate(registrant_ids):
-            params[f"registrant_id_{i}"] = rid
+        params["registrant_ids"] = registrant_ids
 
         query = text(
             f"""
@@ -491,7 +494,7 @@ class RegistryIndividual(RegistryInterface):
             FROM res_partner
             LEFT JOIN g2p_region r ON res_partner.region = r.id
             LEFT JOIN g2p_district d ON res_partner.district = d.id
-            WHERE res_partner.benf_zan_id IN ({registrant_placeholders}) {where}
+            WHERE res_partner.benf_zan_id = ANY(:registrant_ids::text[]) {where}
             ORDER BY {order_sql}
             OFFSET :offset LIMIT :limit
             """
@@ -523,17 +526,13 @@ class RegistryIndividual(RegistryInterface):
                 where = "AND name ILIKE :search_query"
                 params["search_query"] = f"%{search_query}%"
 
-        registrant_placeholders = ", ".join(
-            [f":registrant_id_{i}" for i in range(len(registrant_ids))]
-        )
-        for i, rid in enumerate(registrant_ids):
-            params[f"registrant_id_{i}"] = rid
+        params["registrant_ids"] = registrant_ids
 
         query = text(
             f"""
             SELECT COUNT(*)
             FROM res_partner
-            WHERE benf_zan_id IN ({registrant_placeholders}) {where}
+            WHERE benf_zan_id = ANY(:registrant_ids::text[]) {where}
             """
         )
 
