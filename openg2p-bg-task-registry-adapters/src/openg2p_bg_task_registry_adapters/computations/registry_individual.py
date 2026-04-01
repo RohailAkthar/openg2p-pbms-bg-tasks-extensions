@@ -494,7 +494,7 @@ class RegistryIndividual(RegistryInterface):
             FROM res_partner
             LEFT JOIN g2p_region r ON res_partner.region = r.id
             LEFT JOIN g2p_district d ON res_partner.district = d.id
-            WHERE res_partner.benf_zan_id = ANY(:registrant_ids::text[]) {where}
+            WHERE res_partner.benf_zan_id = ANY(CAST(:registrant_ids AS text[])) {where}
             ORDER BY {order_sql}
             OFFSET :offset LIMIT :limit
             """
@@ -532,7 +532,7 @@ class RegistryIndividual(RegistryInterface):
             f"""
             SELECT COUNT(*)
             FROM res_partner
-            WHERE benf_zan_id = ANY(:registrant_ids::text[]) {where}
+            WHERE benf_zan_id = ANY(CAST(:registrant_ids AS text[])) {where}
             """
         )
 
