@@ -217,6 +217,7 @@ class RegistryIndividual(RegistryInterface):
                 region_name=row["region_name"],
                 district_name=row["district_name"],
                 benf_zan_id=row["benf_zan_id"],
+                pensioner_id=row["pensioner_id"],
                 street=row["street"],
                 phone=row["phone"],
                 benf_post_code=row["benf_post_code"],
@@ -326,7 +327,7 @@ class RegistryIndividual(RegistryInterface):
             batch = registrant_ids[i:i + BATCH_SIZE]
             results.extend(
                 sr_session.query(G2PIndividualRegistry)
-                .filter(G2PIndividualRegistry.benf_zan_id.in_(batch))
+                .filter(G2PIndividualRegistry.pensioner_id.in_(batch))
                 .all()
             )
 
@@ -400,7 +401,7 @@ class RegistryIndividual(RegistryInterface):
         }
 
         registrants = self.get_registrants_by_ids(list(registrant_ids), sr_session)
-        registry_map = {r.benf_zan_id: r for r in registrants}
+        registry_map = {r.pensioner_id: r for r in registrants}
 
         entitlements: Dict[int, List[float]] = {}
         male: Dict[int, List[float]] = {}
@@ -484,7 +485,7 @@ class RegistryIndividual(RegistryInterface):
             f"""
             SELECT res_partner.id, res_partner.name, res_partner.gender, res_partner.birthdate, res_partner.id::TEXT AS registrant_id_str, 
                    r.name AS region_name, d.name AS district_name,
-                   res_partner.benf_zan_id, res_partner.address AS street, res_partner.phone, res_partner.benf_post_code,
+                   res_partner.benf_zan_id, res_partner.pensioner_id, res_partner.address AS street, res_partner.phone, res_partner.benf_post_code,
                    res_partner.disability, res_partner.is_receiving_allowance, res_partner.has_health_insurance,
                    res_partner.payment_mode, res_partner.bank_name, res_partner.account_num, res_partner.account_name,
                    res_partner.mobile_wallet, res_partner.other_pension, res_partner.scheme_name,
@@ -495,7 +496,7 @@ class RegistryIndividual(RegistryInterface):
             FROM res_partner
             LEFT JOIN g2p_region r ON res_partner.region = r.id
             LEFT JOIN g2p_district d ON res_partner.district = d.id
-            WHERE res_partner.benf_zan_id = ANY(CAST(:registrant_ids AS text[])) {where}
+            WHERE res_partner.pensioner_id = ANY(CAST(:registrant_ids AS text[])) {where}
             ORDER BY {order_sql}
             OFFSET :offset LIMIT :limit
             """
@@ -533,7 +534,7 @@ class RegistryIndividual(RegistryInterface):
             f"""
             SELECT COUNT(*)
             FROM res_partner
-            WHERE benf_zan_id = ANY(CAST(:registrant_ids AS text[])) {where}
+            WHERE pensioner_id = ANY(CAST(:registrant_ids AS text[])) {where}
             """
         )
 
@@ -550,7 +551,7 @@ class RegistryIndividual(RegistryInterface):
             f"""
             SELECT {multiplier}::TEXT
             FROM res_partner
-            WHERE benf_zan_id = :registrant_id
+            WHERE pensioner_id = :registrant_id
             """
         )
 
@@ -567,6 +568,6 @@ class RegistryIndividual(RegistryInterface):
             raise ValueError("Query must target res_partner only")
 
         clause = "AND" if "WHERE" in sql else "WHERE"
-        final_sql = f"{sql_query} {clause} res_partner.benf_zan_id = :registrant_id"
+        final_sql = f"{sql_query} {clause} res_partner.pensioner_id = :registrant_id"
 
         return text(final_sql).params(registrant_id=registrant_id)

@@ -11,6 +11,7 @@ class G2PIndividualRegistryPayload(G2PRegistryPayload):
     region_name: Optional[str] = None
     district_name: Optional[str] = None
     benf_zan_id: Optional[str] = None
+    pensioner_id: Optional[str] = None
     nominee_first_name: Optional[str] = None
     nominee_middle_name: Optional[str] = None
     nominee_gender: Optional[str] = None

@@ -18,6 +18,7 @@ class G2PIndividualRegistry(G2PRegistry):
     region = mapped_column(String, nullable=True)
     district = mapped_column(String, nullable=True)
     benf_zan_id = mapped_column(String, nullable=True)
+    pensioner_id = mapped_column(String, nullable=True)
     nominee_first_name = mapped_column(String, nullable=True)
     nominee_gender = mapped_column(String, nullable=True)
     nominee_zanid = mapped_column(String, nullable=True)
