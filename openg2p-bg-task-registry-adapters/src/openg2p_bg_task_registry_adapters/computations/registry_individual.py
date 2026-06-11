@@ -484,7 +484,7 @@ class RegistryIndividual(RegistryInterface):
             f"""
             SELECT res_partner.id, res_partner.name, res_partner.gender, res_partner.birthdate, res_partner.id::TEXT AS registrant_id_str, 
                    r.name AS region_name, d.name AS district_name,
-                   res_partner.benf_zan_id, res_partner.street, res_partner.phone, res_partner.benf_post_code,
+                   res_partner.benf_zan_id, res_partner.address AS street, res_partner.phone, res_partner.benf_post_code,
                    res_partner.disability, res_partner.is_receiving_allowance, res_partner.has_health_insurance,
                    res_partner.payment_mode, res_partner.bank_name, res_partner.account_num, res_partner.account_name,
                    res_partner.mobile_wallet, res_partner.other_pension, res_partner.scheme_name,
