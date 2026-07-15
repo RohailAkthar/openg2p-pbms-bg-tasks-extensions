@@ -114,7 +114,7 @@ class RegistryInterface(ABC):
         page: int = 1,
         page_size: int = 10,
         order_by: str = "id asc",
-    ) -> BeneficiarySearchResponsePayload:
+    ) -> Tuple[BeneficiarySearchResponsePayload, int]:
         """
         Abstract method to search beneficiaries for particular eligibility request id.
         """

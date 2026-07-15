@@ -159,7 +159,7 @@ class RegistryIndividual(RegistryInterface):
                 page=page,
                 page_size=page_size,
                 beneficiaries=[],
-            )
+            ), 0
 
         query, params = self.construct_beneficiary_search_sql_query(
             registrant_ids, search_query, order_by, page_size, page
@@ -252,7 +252,7 @@ class RegistryIndividual(RegistryInterface):
             page=page,
             page_size=page_size,
             beneficiaries=beneficiaries,
-        )
+        ), total_count
 
     async def _get_total_beneficiary_count(
         self,
