@@ -9,7 +9,7 @@ class G2PIndividualRegistry(G2PRegistry):
     @declared_attr
     def link_registry_id(cls):
         return column_property(
-            cast(cls.id, String).label("link_registry_id")
+            cast(cls.internal_record_id, String).label("link_registry_id")
         )
 
     name = mapped_column(String, nullable=False)
