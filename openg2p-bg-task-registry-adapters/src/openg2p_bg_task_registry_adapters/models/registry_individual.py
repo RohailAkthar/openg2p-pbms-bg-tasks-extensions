@@ -6,6 +6,8 @@ from sqlalchemy.orm import column_property, declared_attr, mapped_column
 class G2PIndividualRegistry(G2PRegistry):
     __tablename__ = "res_partner"
 
+    internal_record_id = mapped_column("id", String, primary_key=True)
+
     @declared_attr
     def link_registry_id(cls):
         return column_property(
