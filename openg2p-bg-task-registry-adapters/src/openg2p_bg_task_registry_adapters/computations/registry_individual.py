@@ -124,7 +124,7 @@ class RegistryIndividual(RegistryInterface):
         page: int = 1,
         page_size: int = 10,
         order_by: str = "id asc",
-    ) -> BeneficiarySearchResponsePayload:
+    ) -> Tuple[BeneficiarySearchResponsePayload, int]:
         if target_registry != "individual":
             raise ValueError("Only individual registry supported")
 
