@@ -155,7 +155,7 @@ class RegistryIndividual(RegistryInterface):
 
         if not registrant_ids:
             return BeneficiarySearchResponsePayload(
-                total_beneficiary_count=0,
+                beneficiary_count=0,
                 page=page,
                 page_size=page_size,
                 beneficiaries=[],
@@ -248,7 +248,7 @@ class RegistryIndividual(RegistryInterface):
         ]
 
         return BeneficiarySearchResponsePayload(
-            total_beneficiary_count=total_count,
+            beneficiary_count=total_count,
             page=page,
             page_size=page_size,
             beneficiaries=beneficiaries,
