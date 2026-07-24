@@ -34,13 +34,18 @@ class RegistryHousehold(RegistryInterface):
         formated: bool = False,
     ) -> BeneficiaryListSummaryPayload:
         _logger.info(f"Fetching summary for household beneficiary_list_id: {beneficiary_list_id}")
-        registrant_details = await bg_task_session.execute(
-            select(BeneficiaryListDetails.registrant_details).where(
-                BeneficiaryListDetails.beneficiary_list_id == beneficiary_list_id
+        count = 0
+        try:
+            registrant_details = await bg_task_session.execute(
+                select(BeneficiaryListDetails.registrant_details).where(
+                    BeneficiaryListDetails.beneficiary_list_id == beneficiary_list_id
+                )
             )
-        )
-        registrant_details = registrant_details.scalars().all()
-        count = sum(len(detail) for detail in registrant_details)
+            registrant_details = registrant_details.scalars().all()
+            if registrant_details:
+                count = sum(len(detail) for detail in registrant_details if detail)
+        except Exception as e:
+            _logger.error(f"Error fetching registrant details in get_summary: {e}")
 
         return BeneficiaryListSummaryPayload(
             beneficiary_list_summary=BeneficiaryListSummary(
