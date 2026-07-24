@@ -19,6 +19,7 @@ dependencies = [
   "openg2p-fastapi-common",
   "openg2p-fastapi-auth",
   "fastapi-cache2",
+  "jinja2",
   "numpy"
 ]
 dynamic = ["version"]
