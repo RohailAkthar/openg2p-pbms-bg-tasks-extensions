@@ -39,6 +39,16 @@ class RegistryHousehold(RegistryInterface):
         program_id = 1
         program_mnemonic = "HOUSEHOLD"
         try:
+            summary_res = await bg_task_session.execute(
+                select(BeneficiaryListSummary).where(
+                    BeneficiaryListSummary.beneficiary_list_id == beneficiary_list_id
+                )
+            )
+            summary_obj = summary_res.scalars().first()
+            if summary_obj:
+                program_id = summary_obj.program_id or 1
+                program_mnemonic = summary_obj.program_mnemonic or "HOUSEHOLD"
+
             result = await bg_task_session.execute(
                 select(BeneficiaryListDetails).where(
                     BeneficiaryListDetails.beneficiary_list_id == beneficiary_list_id
@@ -46,10 +56,7 @@ class RegistryHousehold(RegistryInterface):
             )
             detail = result.scalars().first()
             if detail:
-                program_id = detail.program_id or 1
-                program_mnemonic = detail.program_mnemonic or "HOUSEHOLD"
-                registrant_details = detail.registrant_details or []
-                count = len(registrant_details)
+                count = detail.number_of_registrants or len(detail.registrant_details or [])
         except Exception as e:
             _logger.error(f"Error fetching registrant details in get_summary: {e}")
 
@@ -78,14 +85,18 @@ class RegistryHousehold(RegistryInterface):
         program_id = 1
         program_mnemonic = "HOUSEHOLD"
         try:
+            summary_obj = bg_task_session.query(BeneficiaryListSummary).filter(
+                BeneficiaryListSummary.beneficiary_list_id == beneficiary_list_id
+            ).first()
+            if summary_obj:
+                program_id = summary_obj.program_id or 1
+                program_mnemonic = summary_obj.program_mnemonic or "HOUSEHOLD"
+
             detail = bg_task_session.query(BeneficiaryListDetails).filter(
                 BeneficiaryListDetails.beneficiary_list_id == beneficiary_list_id
             ).first()
             if detail:
-                program_id = detail.program_id or 1
-                program_mnemonic = detail.program_mnemonic or "HOUSEHOLD"
-                registrant_details = detail.registrant_details or []
-                count = len(registrant_details)
+                count = detail.number_of_registrants or len(detail.registrant_details or [])
         except Exception as e:
             _logger.error(f"Error fetching sync registrant details: {e}")
 
