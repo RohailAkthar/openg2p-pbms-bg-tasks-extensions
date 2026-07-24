@@ -4,6 +4,15 @@ from typing import Optional
 from .registry import G2PRegistryPayload
 
 
+from pydantic import BaseModel
+
+
+class BeneficiaryListSummaryHousehold(BaseModel):
+    total_male_heads: Optional[int] = 0
+    total_female_heads: Optional[int] = 0
+    average_household_size: Optional[float] = 0.0
+
+
 class G2PHouseholdRegistryPayload(G2PRegistryPayload):
     name: Optional[str] = None
     household_id: Optional[str] = None

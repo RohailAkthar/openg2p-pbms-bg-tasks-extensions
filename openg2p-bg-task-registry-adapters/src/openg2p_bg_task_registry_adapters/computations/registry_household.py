@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from ..interface import RegistryInterface
 from ..schema import (
     BeneficiaryListSummary,
+    BeneficiaryListSummaryHousehold,
     BeneficiaryListSummaryPayload,
     G2PHouseholdRegistryPayload,
 )
@@ -35,46 +36,74 @@ class RegistryHousehold(RegistryInterface):
     ) -> BeneficiaryListSummaryPayload:
         _logger.info(f"Fetching summary for household beneficiary_list_id: {beneficiary_list_id}")
         count = 0
+        program_id = 1
+        program_mnemonic = "HOUSEHOLD"
         try:
-            registrant_details = await bg_task_session.execute(
-                select(BeneficiaryListDetails.registrant_details).where(
+            result = await bg_task_session.execute(
+                select(BeneficiaryListDetails).where(
                     BeneficiaryListDetails.beneficiary_list_id == beneficiary_list_id
                 )
             )
-            registrant_details = registrant_details.scalars().all()
-            if registrant_details:
-                count = sum(len(detail) for detail in registrant_details if detail)
+            detail = result.scalars().first()
+            if detail:
+                program_id = detail.program_id or 1
+                program_mnemonic = detail.program_mnemonic or "HOUSEHOLD"
+                registrant_details = detail.registrant_details or []
+                count = len(registrant_details)
         except Exception as e:
             _logger.error(f"Error fetching registrant details in get_summary: {e}")
 
         return BeneficiaryListSummaryPayload(
             beneficiary_list_summary=BeneficiaryListSummary(
                 id=beneficiary_list_id,
-                program_id=1,
-                program_mnemonic="HH_PROGRAM",
+                program_id=program_id,
+                program_mnemonic=program_mnemonic,
                 target_registry="household",
                 beneficiary_list_id=beneficiary_list_id,
                 number_of_registrants=count,
                 date_created=None,
             ),
-            registry_summary=None,
+            registry_summary=BeneficiaryListSummaryHousehold(
+                total_male_heads=0,
+                total_female_heads=0,
+                average_household_size=0.0,
+            ),
         )
 
     def get_summary_sync(
         self, beneficiary_list_id: str, bg_task_session: Session
     ) -> BeneficiaryListSummaryPayload:
         _logger.info(f"Fetching sync summary for household beneficiary_list_id: {beneficiary_list_id}")
+        count = 0
+        program_id = 1
+        program_mnemonic = "HOUSEHOLD"
+        try:
+            detail = bg_task_session.query(BeneficiaryListDetails).filter(
+                BeneficiaryListDetails.beneficiary_list_id == beneficiary_list_id
+            ).first()
+            if detail:
+                program_id = detail.program_id or 1
+                program_mnemonic = detail.program_mnemonic or "HOUSEHOLD"
+                registrant_details = detail.registrant_details or []
+                count = len(registrant_details)
+        except Exception as e:
+            _logger.error(f"Error fetching sync registrant details: {e}")
+
         return BeneficiaryListSummaryPayload(
             beneficiary_list_summary=BeneficiaryListSummary(
                 id=beneficiary_list_id,
-                program_id=1,
-                program_mnemonic="HH_PROGRAM",
+                program_id=program_id,
+                program_mnemonic=program_mnemonic,
                 target_registry="household",
                 beneficiary_list_id=beneficiary_list_id,
-                number_of_registrants=0,
+                number_of_registrants=count,
                 date_created=None,
             ),
-            registry_summary=None,
+            registry_summary=BeneficiaryListSummaryHousehold(
+                total_male_heads=0,
+                total_female_heads=0,
+                average_household_size=0.0,
+            ),
         )
 
     # =================================
