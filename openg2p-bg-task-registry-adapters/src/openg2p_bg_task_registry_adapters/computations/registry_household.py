@@ -8,9 +8,15 @@ from openg2p_bg_task_models.schemas import (
 )
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from sqlalchemy.orm import Session
 
 from ..interface import RegistryInterface
+from ..schema import (
+    BeneficiaryListSummary,
+    BeneficiaryListSummaryPayload,
+    G2PHouseholdRegistryPayload,
+)
 
 _logger = logging.getLogger("openg2p_bg_task_registry_adapters")
 
@@ -26,15 +32,45 @@ class RegistryHousehold(RegistryInterface):
         beneficiary_list_id: str,
         bg_task_session: AsyncSession,
         formated: bool = False,
-    ):
+    ) -> BeneficiaryListSummaryPayload:
         _logger.info(f"Fetching summary for household beneficiary_list_id: {beneficiary_list_id}")
-        return None
+        registrant_details = await bg_task_session.execute(
+            select(BeneficiaryListDetails.registrant_details).where(
+                BeneficiaryListDetails.beneficiary_list_id == beneficiary_list_id
+            )
+        )
+        registrant_details = registrant_details.scalars().all()
+        count = sum(len(detail) for detail in registrant_details)
+
+        return BeneficiaryListSummaryPayload(
+            beneficiary_list_summary=BeneficiaryListSummary(
+                id=beneficiary_list_id,
+                program_id=1,
+                program_mnemonic="HH_PROGRAM",
+                target_registry="household",
+                beneficiary_list_id=beneficiary_list_id,
+                number_of_registrants=count,
+                date_created=None,
+            ),
+            registry_summary=None,
+        )
 
     def get_summary_sync(
         self, beneficiary_list_id: str, bg_task_session: Session
-    ):
+    ) -> BeneficiaryListSummaryPayload:
         _logger.info(f"Fetching sync summary for household beneficiary_list_id: {beneficiary_list_id}")
-        return None
+        return BeneficiaryListSummaryPayload(
+            beneficiary_list_summary=BeneficiaryListSummary(
+                id=beneficiary_list_id,
+                program_id=1,
+                program_mnemonic="HH_PROGRAM",
+                target_registry="household",
+                beneficiary_list_id=beneficiary_list_id,
+                number_of_registrants=0,
+                date_created=None,
+            ),
+            registry_summary=None,
+        )
 
     # =================================
     # Eligibility Celery Worker Methods
@@ -106,10 +142,61 @@ class RegistryHousehold(RegistryInterface):
         page_size: int = 10,
         order_by: str = "id asc",
     ) -> BeneficiarySearchResponsePayload:
-        _logger.info(f"Searching household beneficiaries for list id: {beneficiary_list_id}")
-        return BeneficiarySearchResponsePayload(
-            total_beneficiary_count=0,
+        registrant_details = await bg_task_session.execute(
+            select(BeneficiaryListDetails.registrant_details).where(
+                BeneficiaryListDetails.beneficiary_list_id == beneficiary_list_id
+            )
+        )
+        registrant_details = registrant_details.scalars().all()
+        registrant_ids = []
+        for registrant_detail in registrant_details:
+            for registrant in registrant_detail:
+                registrant_ids.append(registrant["registrant_id"])
+
+        household_search_query, household_search_params = self.construct_beneficiary_search_sql_query(
+            registrant_ids,
+            target_registry,
+            search_query,
+            order_by,
+            page_size,
+            page,
+        )
+        household_search_results = (
+            (await sr_session.execute(household_search_query, household_search_params))
+            .mappings()
+            .all()
+        )
+
+        total_beneficiary_count = len(registrant_ids)
+
+        beneficiaries = []
+        if household_search_results:
+            beneficiaries = [
+                G2PHouseholdRegistryPayload(
+                    id=hh.get("id", idx + 1),
+                    link_registry_id=str(hh.get("link_registry_id", "")),
+                    name=hh.get("name") or hh.get("head_name") or "Household Record",
+                    household_id=hh.get("household_id"),
+                    household_size=hh.get("household_size"),
+                    head_name=hh.get("head_name"),
+                    head_gender=hh.get("head_gender"),
+                    head_phone=hh.get("head_phone"),
+                    head_dob=hh.get("head_dob"),
+                    children_count=hh.get("children_count"),
+                    adult_count=hh.get("adult_count"),
+                    has_pregnant_member=hh.get("has_pregnant_member"),
+                    has_disabled_member=hh.get("has_disabled_member"),
+                    small_area_code=hh.get("small_area_code"),
+                    large_area_code=hh.get("large_area_code"),
+                )
+                for idx, hh in enumerate(household_search_results)
+            ]
+
+        response_payload = BeneficiarySearchResponsePayload(
+            total_beneficiary_count=total_beneficiary_count,
             page=page,
             page_size=page_size,
-            beneficiaries=[],
+            beneficiaries=beneficiaries,
         )
+
+        return response_payload

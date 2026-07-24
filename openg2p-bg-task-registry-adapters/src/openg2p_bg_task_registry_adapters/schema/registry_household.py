@@ -1,0 +1,20 @@
+from datetime import date
+from typing import Optional
+
+from .registry import G2PRegistryPayload
+
+
+class G2PHouseholdRegistryPayload(G2PRegistryPayload):
+    name: Optional[str] = None
+    household_id: Optional[str] = None
+    household_size: Optional[int] = None
+    head_name: Optional[str] = None
+    head_gender: Optional[str] = None
+    head_phone: Optional[str] = None
+    head_dob: Optional[date] = None
+    children_count: Optional[int] = None
+    adult_count: Optional[int] = None
+    has_pregnant_member: Optional[str] = None
+    has_disabled_member: Optional[str] = None
+    small_area_code: Optional[str] = None
+    large_area_code: Optional[str] = None
