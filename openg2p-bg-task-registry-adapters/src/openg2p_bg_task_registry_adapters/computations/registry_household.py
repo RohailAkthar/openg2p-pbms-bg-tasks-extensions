@@ -253,4 +253,4 @@ class RegistryHousehold(RegistryInterface):
             beneficiaries=beneficiaries,
         )
 
-        return response_payload
+        return response_payload, total_beneficiary_count
