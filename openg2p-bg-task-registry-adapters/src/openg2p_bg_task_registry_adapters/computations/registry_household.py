@@ -185,8 +185,13 @@ class RegistryHousehold(RegistryInterface):
         search_query: Optional[str] = None,
         page: int = 1,
         page_size: int = 10,
-        order_by: str = "id asc",
+        order_by: str = "link_registry_id asc",
     ) -> BeneficiarySearchResponsePayload:
+        if not order_by or "id asc" in order_by or order_by == "id":
+            order_by = "link_registry_id asc"
+        elif "id desc" in order_by:
+            order_by = "link_registry_id desc"
+
         registrant_details = await bg_task_session.execute(
             select(BeneficiaryListDetails.registrant_details).where(
                 BeneficiaryListDetails.beneficiary_list_id == beneficiary_list_id
