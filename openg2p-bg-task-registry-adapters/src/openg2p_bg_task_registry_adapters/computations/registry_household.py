@@ -38,6 +38,10 @@ class RegistryHousehold(RegistryInterface):
         count = 0
         program_id = 1
         program_mnemonic = "HOUSEHOLD"
+        total_male_heads = 0
+        total_female_heads = 0
+        average_household_size = 0.0
+
         try:
             result = await bg_task_session.execute(
                 select(BeneficiaryListDetails).where(
@@ -47,6 +51,22 @@ class RegistryHousehold(RegistryInterface):
             detail = result.scalars().first()
             if detail:
                 count = detail.number_of_registrants or len(detail.registrant_details or [])
+                details_list = detail.registrant_details or []
+                for reg in details_list:
+                    gender = str(reg.get("head_gender") or reg.get("gender") or "").lower()
+                    if gender.startswith("m"):
+                        total_male_heads += 1
+                    elif gender.startswith("f"):
+                        total_female_heads += 1
+                    
+                    size = reg.get("household_size")
+                    if size is not None:
+                        try:
+                            average_household_size += float(size)
+                        except (ValueError, TypeError):
+                            pass
+                if count > 0 and average_household_size > 0:
+                    average_household_size = round(average_household_size / count, 2)
         except Exception as e:
             _logger.error(f"Error fetching registrant details in get_summary: {e}")
 
@@ -61,9 +81,9 @@ class RegistryHousehold(RegistryInterface):
                 date_created=None,
             ),
             registry_summary=BeneficiaryListSummaryHousehold(
-                total_male_heads=0,
-                total_female_heads=0,
-                average_household_size=0.0,
+                total_male_heads=total_male_heads,
+                total_female_heads=total_female_heads,
+                average_household_size=average_household_size,
             ),
         )
 
@@ -226,6 +246,7 @@ class RegistryHousehold(RegistryInterface):
             ]
 
         response_payload = BeneficiarySearchResponsePayload(
+            beneficiary_count=total_beneficiary_count,
             total_beneficiary_count=total_beneficiary_count,
             page=page,
             page_size=page_size,
