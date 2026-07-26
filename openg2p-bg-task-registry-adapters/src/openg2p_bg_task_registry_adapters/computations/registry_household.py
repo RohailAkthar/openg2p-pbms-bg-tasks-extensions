@@ -52,21 +52,47 @@ class RegistryHousehold(RegistryInterface):
             if detail:
                 count = detail.number_of_registrants or len(detail.registrant_details or [])
                 details_list = detail.registrant_details or []
+                registrant_ids = []
                 for reg in details_list:
-                    gender = str(reg.get("head_gender") or reg.get("gender") or "").lower()
-                    if gender.startswith("m"):
-                        total_male_heads += 1
-                    elif gender.startswith("f"):
-                        total_female_heads += 1
-                    
-                    size = reg.get("household_size")
-                    if size is not None:
-                        try:
-                            average_household_size += float(size)
-                        except (ValueError, TypeError):
-                            pass
-                if count > 0 and average_household_size > 0:
-                    average_household_size = round(average_household_size / count, 2)
+                    reg_id = reg.get("registrant_id") if isinstance(reg, dict) else getattr(reg, "registrant_id", None)
+                    if reg_id:
+                        registrant_ids.append(str(reg_id))
+
+                if registrant_ids:
+                    try:
+                        from openg2p_bg_task_models.config import Settings
+                        from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+                        from sqlalchemy.orm import sessionmaker
+
+                        settings = Settings()
+                        sr_engine = create_async_engine(settings.DB_URI_SR, echo=False)
+                        async_session = sessionmaker(sr_engine, class_=AsyncSession, expire_on_commit=False)
+
+                        async with async_session() as sr_sess:
+                            placeholders = ", ".join([f":id_{i}" for i in range(len(registrant_ids))])
+                            params = {f"id_{i}": registrant_ids[i] for i in range(len(registrant_ids))}
+                            sql = text(f"SELECT head_gender, household_size FROM g2p_household_registry WHERE link_registry_id IN ({placeholders})")
+                            rows = (await sr_sess.execute(sql, params)).fetchall()
+                            
+                            total_size = 0.0
+                            for row in rows:
+                                gender = str(row[0] or "").lower()
+                                if gender.startswith("m"):
+                                    total_male_heads += 1
+                                elif gender.startswith("f"):
+                                    total_female_heads += 1
+                                
+                                if row[1] is not None:
+                                    try:
+                                        total_size += float(row[1])
+                                    except (ValueError, TypeError):
+                                        pass
+                            if count > 0 and total_size > 0:
+                                average_household_size = round(total_size / count, 2)
+                        await sr_engine.dispose()
+                    except Exception as sr_err:
+                        _logger.error(f"Error querying live household stats from SR: {sr_err}")
+
         except Exception as e:
             _logger.error(f"Error fetching registrant details in get_summary: {e}")
 
