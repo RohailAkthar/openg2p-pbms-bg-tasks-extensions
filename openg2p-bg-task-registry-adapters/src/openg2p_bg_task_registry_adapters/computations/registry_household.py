@@ -83,7 +83,7 @@ class RegistryHousehold(RegistryInterface):
                         if registrant_ids:
                             placeholders = ", ".join([f":id_{i}" for i in range(len(registrant_ids))])
                             params = {f"id_{i}": registrant_ids[i] for i in range(len(registrant_ids))}
-                            sql = text(f"SELECT head_gender, household_size FROM g2p_household_registry WHERE link_registry_id IN ({placeholders}) OR household_id IN ({placeholders})")
+                            sql = text(f"SELECT head_gender, household_size FROM g2p_household_registry WHERE link_registry_id IN ({placeholders})")
                             rows = (await session_to_use.execute(sql, params)).fetchall()
                         else:
                             rows = []
