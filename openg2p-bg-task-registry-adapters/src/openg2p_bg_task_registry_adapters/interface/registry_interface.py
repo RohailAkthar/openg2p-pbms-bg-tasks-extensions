@@ -152,15 +152,26 @@ class RegistryInterface(ABC):
         page_size: int,
         page: int,
     ) -> Tuple[TextClause, Dict[str, Any]]:
-        if not registrant_ids:
-            return None, {}
-
         # Replace curly quotes in the where clause
-        where_clause = where_clause.replace("“", '"').replace("”", '"')
+        where_clause = (where_clause or "").replace("“", '"').replace("”", '"')
         where_clause = where_clause.replace("‘", "'").replace("’", "'")
 
         table_name = f"g2p_{target_registry}_registry"
-        where_clause_sql = f" AND {where_clause}" if where_clause else ""
+        if not registrant_ids:
+            where_clause_sql = f"WHERE {where_clause}" if where_clause else ""
+            sql_query = text(
+                f"""
+                SELECT * FROM {table_name}
+                {where_clause_sql}
+                ORDER BY {order_by}
+                OFFSET :offset
+                LIMIT :limit
+            """
+            )
+            params = {"offset": page_size * (page - 1), "limit": page_size}
+            return sql_query, params
+
+        where_clause_sql = f" AND ({where_clause})" if where_clause else ""
         registrant_placeholders = ", ".join(
             [f":registrant_id_{i}" for i in range(len(registrant_ids))]
         )
@@ -168,7 +179,7 @@ class RegistryInterface(ABC):
         sql_query = text(
             f"""
             SELECT * FROM {table_name}
-            WHERE link_registry_id IN ({registrant_placeholders}) {where_clause_sql}
+            WHERE (link_registry_id IN ({registrant_placeholders}) OR CAST(id AS TEXT) IN ({registrant_placeholders})) {where_clause_sql}
             ORDER BY {order_by}
             OFFSET :offset
             LIMIT :limit
@@ -185,15 +196,22 @@ class RegistryInterface(ABC):
     def construct_beneficiary_search_count_sql_query(
         self, registrant_ids: List[str], target_registry: str, where_clause: str
     ) -> Tuple[TextClause, Dict[str, Any]]:
-        if not registrant_ids:
-            return None, {}
-
         # Replace curly quotes in the where clause
-        where_clause = where_clause.replace("“", '"').replace("”", '"')
+        where_clause = (where_clause or "").replace("“", '"').replace("”", '"')
         where_clause = where_clause.replace("‘", "'").replace("’", "'")
 
         table_name = f"g2p_{target_registry}_registry"
-        where_clause_sql = f" AND {where_clause}" if where_clause else ""
+        if not registrant_ids:
+            where_clause_sql = f"WHERE {where_clause}" if where_clause else ""
+            sql_query = text(
+                f"""
+                SELECT COUNT(*) FROM {table_name}
+                {where_clause_sql}
+            """
+            )
+            return sql_query, {}
+
+        where_clause_sql = f" AND ({where_clause})" if where_clause else ""
         registrant_placeholders = ", ".join(
             [f":registrant_id_{i}" for i in range(len(registrant_ids))]
         )
@@ -201,7 +219,7 @@ class RegistryInterface(ABC):
         sql_query = text(
             f"""
             SELECT COUNT(*) FROM {table_name}
-            WHERE link_registry_id IN ({registrant_placeholders}) {where_clause_sql}
+            WHERE (link_registry_id IN ({registrant_placeholders}) OR CAST(id AS TEXT) IN ({registrant_placeholders})) {where_clause_sql}
         """
         )
 
