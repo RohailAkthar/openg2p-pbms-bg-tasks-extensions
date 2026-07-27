@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from openg2p_bg_task_models.schemas import (
     BeneficiarySearchResponsePayload,
