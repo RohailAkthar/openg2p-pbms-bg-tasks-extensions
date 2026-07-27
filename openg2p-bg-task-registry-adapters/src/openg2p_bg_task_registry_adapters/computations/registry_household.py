@@ -58,34 +58,11 @@ class RegistryHousehold(RegistryInterface):
                     if reg_id:
                         registrant_ids.append(str(reg_id))
 
-                try:
-                    if registrant_ids:
-                        placeholders = ", ".join([f":id_{i}" for i in range(len(registrant_ids))])
-                        params = {f"id_{i}": registrant_ids[i] for i in range(len(registrant_ids))}
-                        sql = text(f"SELECT head_gender, household_size FROM g2p_household_registry WHERE link_registry_id IN ({placeholders}) OR household_id IN ({placeholders})")
-                        rows = (await bg_task_session.execute(sql, params)).fetchall()
-                    else:
-                        sql = text("SELECT head_gender, household_size FROM g2p_household_registry")
-                        rows = (await bg_task_session.execute(sql)).fetchall()
-                    
-                    total_size = 0.0
-                    for row in rows:
-                        gender = str(row[0] or "").lower()
-                        if gender.startswith("m"):
-                            total_male_heads += 1
-                        elif gender.startswith("f"):
-                            total_female_heads += 1
-                        
-                        if row[1] is not None:
-                            try:
-                                total_size += float(row[1])
-                            except (ValueError, TypeError):
-                                pass
-                    calc_denom = count if count > 0 else len(rows)
-                    if calc_denom > 0 and total_size > 0:
-                        average_household_size = round(total_size / calc_denom, 2)
-                except Exception as sr_err:
-                    _logger.error(f"Error querying live household stats from SR: {sr_err}")
+                # NOTE: g2p_household_registry table exists in the SR database,
+                # not in the bg_task database. Household stats (total_male_heads,
+                # total_female_heads, average_household_size) are computed by
+                # the Odoo fallback in bgtask_summary_wizard.py instead.
+                _logger.debug(f"Skipping SR household stats query in get_summary (table not in bg_task DB). Registrant count: {len(registrant_ids)}")
 
         except Exception as e:
             _logger.error(f"Error fetching registrant details in get_summary: {e}")
@@ -125,29 +102,9 @@ class RegistryHousehold(RegistryInterface):
                 count = detail.number_of_registrants or len(detail.registrant_details or [])
                 details_list = detail.registrant_details or []
                 registrant_ids = [str(reg.get("registrant_id")) for reg in details_list if isinstance(reg, dict) and reg.get("registrant_id")]
-                if registrant_ids:
-                    placeholders = ", ".join([f":id_{i}" for i in range(len(registrant_ids))])
-                    params = {f"id_{i}": registrant_ids[i] for i in range(len(registrant_ids))}
-                    sql = text(f"SELECT head_gender, household_size FROM g2p_household_registry WHERE link_registry_id IN ({placeholders}) OR household_id IN ({placeholders})")
-                else:
-                    sql = text("SELECT head_gender, household_size FROM g2p_household_registry")
-                    params = {}
-                rows = bg_task_session.execute(sql, params).fetchall()
-                total_size = 0.0
-                for row in rows:
-                    gender = str(row[0] or "").lower()
-                    if gender.startswith("m"):
-                        total_male_heads += 1
-                    elif gender.startswith("f"):
-                        total_female_heads += 1
-                    if row[1] is not None:
-                        try:
-                            total_size += float(row[1])
-                        except (ValueError, TypeError):
-                            pass
-                calc_denom = count if count > 0 else len(rows)
-                if calc_denom > 0 and total_size > 0:
-                    average_household_size = round(total_size / calc_denom, 2)
+                # NOTE: g2p_household_registry table exists in the SR database,
+                # not in the bg_task database. Stats are computed by Odoo fallback.
+                _logger.debug(f"Skipping SR household stats query in get_summary_sync (table not in bg_task DB). Registrant count: {len(registrant_ids)}")
         except Exception as e:
             _logger.error(f"Error fetching sync registrant details: {e}")
 
@@ -272,7 +229,7 @@ class RegistryHousehold(RegistryInterface):
         count_query, count_params = self.construct_beneficiary_search_count_sql_query(
             registrant_ids, target_registry, search_query
         )
-        if count_query:
+        if count_query is not None:
             try:
                 count_res = (await sr_session.execute(count_query, count_params)).scalar()
                 if count_res is not None and count_res > 0:
