@@ -32,6 +32,7 @@ class RegistryHousehold(RegistryInterface):
         self,
         beneficiary_list_id: str,
         bg_task_session: AsyncSession,
+        sr_session: Optional[AsyncSession] = None,
         formated: bool = False,
     ) -> BeneficiaryListSummaryPayload:
         _logger.info(f"Fetching summary for household beneficiary_list_id: {beneficiary_list_id}")
@@ -58,11 +59,59 @@ class RegistryHousehold(RegistryInterface):
                     if reg_id:
                         registrant_ids.append(str(reg_id))
 
-                # NOTE: g2p_household_registry table exists in the SR database,
-                # not in the bg_task database. Household stats (total_male_heads,
-                # total_female_heads, average_household_size) are computed by
-                # the Odoo fallback in bgtask_summary_wizard.py instead.
-                _logger.debug(f"Skipping SR household stats query in get_summary (table not in bg_task DB). Registrant count: {len(registrant_ids)}")
+                session_to_use = sr_session
+                temp_engine = None
+                is_temp_session = False
+                if not session_to_use:
+                    sr_db_url = os.environ.get("DB_URI_SR") or os.environ.get("SR_DATABASE_URL") or os.environ.get("DATABASE_URL")
+                    if sr_db_url:
+                        if sr_db_url.startswith("postgresql://"):
+                            sr_db_url = sr_db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+                        elif sr_db_url.startswith("postgres://"):
+                            sr_db_url = sr_db_url.replace("postgres://", "postgresql+asyncpg://", 1)
+                        try:
+                            from sqlalchemy.orm import sessionmaker
+                            temp_engine = create_async_engine(sr_db_url)
+                            async_session_factory = sessionmaker(temp_engine, class_=AsyncSession, expire_on_commit=False)
+                            session_to_use = async_session_factory()
+                            is_temp_session = True
+                        except Exception as eng_err:
+                            _logger.error(f"Error creating SR engine for summary stats: {eng_err}")
+
+                if session_to_use:
+                    try:
+                        if registrant_ids:
+                            placeholders = ", ".join([f":id_{i}" for i in range(len(registrant_ids))])
+                            params = {f"id_{i}": registrant_ids[i] for i in range(len(registrant_ids))}
+                            sql = text(f"SELECT head_gender, household_size FROM g2p_household_registry WHERE link_registry_id IN ({placeholders}) OR household_id IN ({placeholders})")
+                            rows = (await session_to_use.execute(sql, params)).fetchall()
+                        else:
+                            sql = text("SELECT head_gender, household_size FROM g2p_household_registry")
+                            rows = (await session_to_use.execute(sql)).fetchall()
+                        
+                        total_size = 0.0
+                        for row in rows:
+                            gender = str(row[0] or "").lower()
+                            if gender.startswith("m"):
+                                total_male_heads += 1
+                            elif gender.startswith("f"):
+                                total_female_heads += 1
+                            
+                            if row[1] is not None:
+                                try:
+                                    total_size += float(row[1])
+                                except (ValueError, TypeError):
+                                    pass
+                        calc_denom = count if count > 0 else len(rows)
+                        if calc_denom > 0 and total_size > 0:
+                            average_household_size = round(total_size / calc_denom, 2)
+                    except Exception as sr_err:
+                        _logger.error(f"Error querying live household stats from SR in get_summary: {sr_err}")
+                    finally:
+                        if is_temp_session and session_to_use:
+                            await session_to_use.close()
+                        if temp_engine:
+                            await temp_engine.dispose()
 
         except Exception as e:
             _logger.error(f"Error fetching registrant details in get_summary: {e}")

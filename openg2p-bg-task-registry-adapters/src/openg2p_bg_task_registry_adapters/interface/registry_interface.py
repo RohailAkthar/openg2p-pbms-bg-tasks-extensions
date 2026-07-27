@@ -25,7 +25,7 @@ class RegistryInterface(ABC):
     # ================
     @abstractmethod
     async def get_summary(
-        self, beneficiary_list_id: str, bg_task_session: AsyncSession, formated: bool = False
+        self, beneficiary_list_id: str, bg_task_session: AsyncSession, sr_session: Optional[AsyncSession] = None, formated: bool = False
     ) -> BeneficiaryListSummaryPayload:
         """
         Abstract method to get async summary statistics for a given beneficiary_list_id.
