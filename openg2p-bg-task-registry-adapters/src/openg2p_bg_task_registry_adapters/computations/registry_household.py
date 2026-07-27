@@ -86,8 +86,7 @@ class RegistryHousehold(RegistryInterface):
                             sql = text(f"SELECT head_gender, household_size FROM g2p_household_registry WHERE link_registry_id IN ({placeholders}) OR household_id IN ({placeholders})")
                             rows = (await session_to_use.execute(sql, params)).fetchall()
                         else:
-                            sql = text("SELECT head_gender, household_size FROM g2p_household_registry")
-                            rows = (await session_to_use.execute(sql)).fetchall()
+                            rows = []
                         
                         total_size = 0.0
                         for row in rows:
