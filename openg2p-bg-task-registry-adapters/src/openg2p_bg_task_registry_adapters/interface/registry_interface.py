@@ -179,7 +179,7 @@ class RegistryInterface(ABC):
         sql_query = text(
             f"""
             SELECT * FROM {table_name}
-            WHERE (link_registry_id IN ({registrant_placeholders}) OR CAST(id AS TEXT) IN ({registrant_placeholders})) {where_clause_sql}
+            WHERE link_registry_id IN ({registrant_placeholders}) {where_clause_sql}
             ORDER BY {order_by}
             OFFSET :offset
             LIMIT :limit
@@ -219,7 +219,7 @@ class RegistryInterface(ABC):
         sql_query = text(
             f"""
             SELECT COUNT(*) FROM {table_name}
-            WHERE (link_registry_id IN ({registrant_placeholders}) OR CAST(id AS TEXT) IN ({registrant_placeholders})) {where_clause_sql}
+            WHERE link_registry_id IN ({registrant_placeholders}) {where_clause_sql}
         """
         )
 
