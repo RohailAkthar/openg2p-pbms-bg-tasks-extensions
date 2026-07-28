@@ -21,9 +21,12 @@ class G2PHouseholdRegistryPayload(G2PRegistryPayload):
     head_gender: Optional[str] = None
     head_phone: Optional[str] = None
     head_dob: Optional[date] = None
+    head_income: Optional[float] = None
     children_count: Optional[int] = None
     adult_count: Optional[int] = None
     has_pregnant_member: Optional[str] = None
     has_disabled_member: Optional[str] = None
     small_area_code: Optional[str] = None
     large_area_code: Optional[str] = None
+    address: Optional[str] = None
+

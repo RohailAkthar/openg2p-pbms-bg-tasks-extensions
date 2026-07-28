@@ -301,13 +301,16 @@ class RegistryHousehold(RegistryInterface):
                     head_gender=hh.get("head_gender"),
                     head_phone=hh.get("head_phone"),
                     head_dob=hh.get("head_dob"),
+                    head_income=hh.get("head_income"),
                     children_count=hh.get("children_count"),
                     adult_count=hh.get("adult_count"),
                     has_pregnant_member=hh.get("has_pregnant_member"),
                     has_disabled_member=hh.get("has_disabled_member"),
                     small_area_code=hh.get("small_area_code"),
                     large_area_code=hh.get("large_area_code"),
+                    address=hh.get("address"),
                 )
+
                 for idx, hh in enumerate(household_search_results)
             ]
 
