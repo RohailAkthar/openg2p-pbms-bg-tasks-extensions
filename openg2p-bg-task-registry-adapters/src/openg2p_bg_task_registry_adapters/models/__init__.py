@@ -5,3 +5,8 @@ from .registry_student import G2PStudentRegistry
 from .beneficiary_list_summary_families import BeneficiaryListSummaryFamilies
 from .beneficiary_list_summary_farmer import BeneficiaryListSummaryFarmer
 from .beneficiary_list_summary_student import BeneficiaryListSummaryStudent
+from .registry_household import G2PRegisterHousehold
+from .registry_individual import G2PRegisterIndividual
+from .beneficiary_list_summary_household import BeneficiaryListSummaryHousehold
+from .beneficiary_list_summary_individual import BeneficiaryListSummaryIndividual
+

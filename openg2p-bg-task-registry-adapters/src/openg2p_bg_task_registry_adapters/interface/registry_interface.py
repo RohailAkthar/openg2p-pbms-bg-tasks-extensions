@@ -131,13 +131,20 @@ class RegistryInterface(ABC):
     # ===============================
     # Registry SQL Query Constructors
     # ===============================
+    def get_table_name(self, target_registry: str) -> str:
+        if target_registry == "household":
+            return "g2p_register_households"
+        elif target_registry == "individual":
+            return "g2p_register_individuals"
+        return f"g2p_register_{target_registry}s"
+
     def construct_multiplier_sql_query(
         self, multiplier: str, target_registry: str
     ) -> TextClause:
         if not multiplier or multiplier == "none":
             return None
 
-        table_name = f"g2p_register_{target_registry}"
+        table_name = self.get_table_name(target_registry)
         sql_query = text(
             f"""
             SELECT {multiplier} FROM {table_name}
@@ -162,7 +169,7 @@ class RegistryInterface(ABC):
         where_clause = where_clause.replace("“", '"').replace("”", '"')
         where_clause = where_clause.replace("‘", "'").replace("’", "'")
 
-        table_name = f"g2p_register_{target_registry}"
+        table_name = self.get_table_name(target_registry)
         where_clause_sql = f" AND {where_clause}" if where_clause else ""
         registrant_placeholders = ", ".join(
             [f":registrant_id_{i}" for i in range(len(registrant_ids))]
@@ -195,7 +202,7 @@ class RegistryInterface(ABC):
         where_clause = where_clause.replace("“", '"').replace("”", '"')
         where_clause = where_clause.replace("‘", "'").replace("’", "'")
 
-        table_name = f"g2p_register_{target_registry}"
+        table_name = self.get_table_name(target_registry)
         where_clause_sql = f" AND {where_clause}" if where_clause else ""
         registrant_placeholders = ", ".join(
             [f":registrant_id_{i}" for i in range(len(registrant_ids))]
@@ -224,13 +231,14 @@ class RegistryInterface(ABC):
         if not sql_query.upper().startswith("SELECT"):
             raise ValueError("Invalid SQL query: Must be a valid SELECT statement")
 
+        table_name = self.get_table_name(target_registry)
         if "WHERE" in sql_query.upper():
             sql_query += (
-                f" AND g2p_register_{target_registry}.internal_record_id = :registrant_id"
+                f' AND "{table_name}".internal_record_id = :registrant_id'
             )
         else:
             sql_query += (
-                f" WHERE g2p_register_{target_registry}.internal_record_id = :registrant_id"
+                f' WHERE "{table_name}".internal_record_id = :registrant_id'
             )
 
         params = {"registrant_id": registrant_id}
