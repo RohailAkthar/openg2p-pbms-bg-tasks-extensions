@@ -53,10 +53,15 @@ class G2PRegisterHousehold(G2PRegistry):
     rooms_count: Mapped[int] = mapped_column(Integer, nullable=True)
     overcrowding_indicator: Mapped[float] = mapped_column(Float, nullable=True)
 
-    # Utilities
+    # Utilities & Extra Attributes
     water_source_type: Mapped[str] = mapped_column(String, nullable=True)
     water_distance_minutes: Mapped[int] = mapped_column(Integer, nullable=True)
     sanitation_type: Mapped[str] = mapped_column(String, nullable=True)
     lighting_source: Mapped[str] = mapped_column(String, nullable=True)
     cooking_fuel_type: Mapped[str] = mapped_column(String, nullable=True)
     mobile_phone_type: Mapped[str] = mapped_column(String, nullable=True)
+    phone_number: Mapped[str] = mapped_column(String, nullable=True)
+    family_monthly_income: Mapped[float] = mapped_column(Float, nullable=True)
+    pregnant_member_present: Mapped[bool] = mapped_column(Boolean, nullable=True)
+    geo_code_hierarchy_json: Mapped[str] = mapped_column(Text, nullable=True)
+

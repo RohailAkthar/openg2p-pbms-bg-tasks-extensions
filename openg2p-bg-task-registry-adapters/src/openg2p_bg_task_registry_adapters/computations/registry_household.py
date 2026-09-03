@@ -186,14 +186,17 @@ class RegistryHousehold(RegistryInterface):
                 G2PRegisterHouseholdPayload(
                     internal_record_id=h.get("internal_record_id"),
                     functional_record_id=h.get("functional_record_id"),
+                    link_foundational_id=h.get("link_foundational_id"),
                     household_head_name=h.get("household_head_name"),
                     headship_type=h.get("headship_type"),
                     size_total=h.get("size_total"),
-                    dwelling_type=h.get("dwelling_type"),
-                    water_source_type=h.get("water_source_type"),
-                    sanitation_type=h.get("sanitation_type"),
+                    address_line_1=h.get("address_line_1"),
+                    address_line_2=h.get("address_line_2"),
                     geo_lowest_level_value_id=h.get("geo_lowest_level_value_id"),
-                    record_status=h.get("record_status"),
+                    phone_number=h.get("phone_number") or h.get("contact_phone_number"),
+                    family_monthly_income=h.get("family_monthly_income"),
+                    pregnant_member_present=h.get("pregnant_member_present"),
+                    record_status=h.get("record_status") or "ACTIVE",
                 )
                 for h in search_results
             ]
