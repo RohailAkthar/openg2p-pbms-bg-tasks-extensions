@@ -206,8 +206,20 @@ class RegistryHousehold(RegistryInterface):
                 if not district:
                     district = h.get("lga_administrative_code")
 
-                # 2. Contact Phone Number (in NSR, stored in address_line_2 or phone_number)
-                contact_number = h.get("phone_number") or h.get("contact_phone_number") or h.get("address_line_2")
+                # 2. Contact Phone Number (stored in mobile_phone_type or address_line_2 in NSR)
+                contact_number = h.get("mobile_phone_type") or h.get("address_line_2") or h.get("phone_number")
+
+                # 3. Total Family Monthly Income (stored in postal_code in NSR seed)
+                raw_income = h.get("postal_code") or h.get("family_monthly_income")
+                monthly_income = None
+                if raw_income:
+                    try:
+                        monthly_income = float(str(raw_income).replace(",", "").strip())
+                    except (ValueError, TypeError):
+                        monthly_income = None
+
+                # 4. Pregnant Member Present (stored in elderly_member_present flag in NSR seed)
+                has_pregnant = bool(h.get("elderly_member_present"))
 
                 beneficiaries.append(
                     G2PRegisterHouseholdPayload(
@@ -221,8 +233,8 @@ class RegistryHousehold(RegistryInterface):
                         district=district,
                         ward=ward,
                         contact_number=contact_number,
-                        family_monthly_income=h.get("family_monthly_income"),
-                        pregnant_member_present=h.get("pregnant_member_present"),
+                        family_monthly_income=monthly_income,
+                        pregnant_member_present=has_pregnant,
                     )
                 )
 
