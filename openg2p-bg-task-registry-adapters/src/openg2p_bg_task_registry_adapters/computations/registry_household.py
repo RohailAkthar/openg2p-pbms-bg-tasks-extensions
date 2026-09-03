@@ -1,5 +1,7 @@
+import json
 import math
 from typing import List, Optional, Tuple
+
 
 import numpy as np
 from fastapi_cache.decorator import cache
@@ -182,24 +184,47 @@ class RegistryHousehold(RegistryInterface):
 
         beneficiaries = []
         if search_results:
-            beneficiaries = [
-                G2PRegisterHouseholdPayload(
-                    internal_record_id=h.get("internal_record_id"),
-                    functional_record_id=h.get("functional_record_id"),
-                    link_foundational_id=h.get("link_foundational_id"),
-                    household_head_name=h.get("household_head_name"),
-                    headship_type=h.get("headship_type"),
-                    size_total=h.get("size_total"),
-                    address_line_1=h.get("address_line_1"),
-                    address_line_2=h.get("address_line_2"),
-                    geo_lowest_level_value_id=h.get("geo_lowest_level_value_id"),
-                    phone_number=h.get("phone_number") or h.get("contact_phone_number"),
-                    family_monthly_income=h.get("family_monthly_income"),
-                    pregnant_member_present=h.get("pregnant_member_present"),
-                    record_status=h.get("record_status") or "ACTIVE",
+            for h in search_results:
+                # 1. Location details (Region, District, Ward)
+                geo_json = h.get("geo_code_hierarchy_json")
+                region = None
+                district = None
+                ward = h.get("geo_lowest_level_value_id") or None
+
+                if geo_json:
+                    try:
+                        geo_data = json.loads(geo_json) if isinstance(geo_json, str) else geo_json
+                        if isinstance(geo_data, dict):
+                            region = geo_data.get("region") or geo_data.get("state") or geo_data.get("admin_level_1") or geo_data.get("level_1")
+                            district = geo_data.get("district") or geo_data.get("lga") or geo_data.get("admin_level_2") or geo_data.get("level_2")
+                            ward = geo_data.get("ward") or geo_data.get("admin_level_3") or geo_data.get("level_3") or ward
+                    except Exception:
+                        pass
+
+                if not region:
+                    region = h.get("address_line_1")
+                if not district:
+                    district = h.get("lga_administrative_code")
+
+                # 2. Contact Phone Number (in NSR, stored in address_line_2 or phone_number)
+                contact_number = h.get("phone_number") or h.get("contact_phone_number") or h.get("address_line_2")
+
+                beneficiaries.append(
+                    G2PRegisterHouseholdPayload(
+                        internal_record_id=h.get("internal_record_id"),
+                        functional_record_id=h.get("functional_record_id"),
+                        link_foundational_id=h.get("link_foundational_id"),
+                        household_head_name=h.get("household_head_name"),
+                        headship_type=h.get("headship_type"),
+                        size_total=h.get("size_total"),
+                        region=region,
+                        district=district,
+                        ward=ward,
+                        contact_number=contact_number,
+                        family_monthly_income=h.get("family_monthly_income"),
+                        pregnant_member_present=h.get("pregnant_member_present"),
+                    )
                 )
-                for h in search_results
-            ]
 
         response_payload = BeneficiarySearchResponsePayload(
             beneficiary_count=len(beneficiaries),
