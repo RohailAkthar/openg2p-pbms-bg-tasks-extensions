@@ -1,4 +1,6 @@
+import json
 import math
+from datetime import date, datetime
 from typing import List, Optional, Tuple
 
 import numpy as np
@@ -188,22 +190,34 @@ class RegistryIndividual(RegistryInterface):
 
         beneficiaries = []
         if search_results:
-            beneficiaries = [
-                G2PRegisterIndividualPayload(
-                    internal_record_id=ind.get("internal_record_id"),
-                    functional_record_id=ind.get("functional_record_id"),
-                    full_name=ind.get("full_name") or f"{ind.get('first_name', '')} {ind.get('last_name', '')}".strip(),
-                    gender=ind.get("gender"),
-                    estimated_age=ind.get("estimated_age"),
-                    relationship_to_head=ind.get("relationship_to_head"),
-                    disability_status=ind.get("disability_status"),
-                    plw_status=ind.get("plw_status"),
-                    primary_livelihood=ind.get("primary_livelihood"),
-                    foundational_id_masked=ind.get("foundational_id_masked"),
-                    record_status=ind.get("record_status"),
+            today = date.today()
+            for ind in search_results:
+                age = ind.get("estimated_age")
+                if age is None and ind.get("birth_date"):
+                    bdate = ind.get("birth_date")
+                    if isinstance(bdate, str):
+                        try:
+                            bdate = datetime.strptime(bdate, "%Y-%m-%d").date()
+                        except Exception:
+                            pass
+                    if isinstance(bdate, (date, datetime)):
+                        age = today.year - bdate.year - ((today.month, today.day) < (bdate.month, bdate.day))
+
+                beneficiaries.append(
+                    G2PRegisterIndividualPayload(
+                        internal_record_id=ind.get("internal_record_id"),
+                        functional_record_id=ind.get("functional_record_id"),
+                        full_name=ind.get("full_name") or f"{ind.get('first_name', '')} {ind.get('last_name', '')}".strip(),
+                        gender=ind.get("gender"),
+                        estimated_age=age,
+                        relationship_to_head=ind.get("relationship_to_head"),
+                        disability_status=ind.get("disability_status"),
+                        plw_status=ind.get("plw_status"),
+                        primary_livelihood=ind.get("primary_livelihood"),
+                        foundational_id_masked=ind.get("foundational_id_masked"),
+                        record_status=ind.get("record_status"),
+                    )
                 )
-                for ind in search_results
-            ]
 
         response_payload = BeneficiarySearchResponsePayload(
             beneficiary_count=len(beneficiaries),
@@ -261,12 +275,22 @@ class RegistryIndividual(RegistryInterface):
             registrant_ids = [r["registrant_id"] for r in (b_detail.registrant_details or [])]
             if registrant_ids:
                 registrants = self.get_registrants_by_ids(registrant_ids, sr_session)
+                today = date.today()
                 for ind in registrants:
-                    if ind.estimated_age is not None:
-                        ages.append(ind.estimated_age)
-                    if (ind.gender or "").lower() == "female":
+                    # Calculate Age from estimated_age or birth_date
+                    age = ind.estimated_age
+                    if age is None and ind.birth_date:
+                        try:
+                            age = today.year - ind.birth_date.year - ((today.month, today.day) < (ind.birth_date.month, ind.birth_date.day))
+                        except Exception:
+                            age = None
+                    if age is not None:
+                        ages.append(age)
+
+                    g = (ind.gender or "").upper()
+                    if g in ("FEMALE", "F"):
                         female_c += 1
-                    elif (ind.gender or "").lower() == "male":
+                    elif g in ("MALE", "M"):
                         male_c += 1
                     if ind.plw_status:
                         plw_c += 1
