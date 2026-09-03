@@ -53,7 +53,7 @@ class RegistryHousehold(RegistryInterface):
             return BeneficiaryListSummaryHouseholdPayload(
                 beneficiary_list_summary=BeneficiaryListSummary(
                     id="",
-                    program_id="",
+                    program_id=0,
                     program_mnemonic="",
                     target_registry="household",
                     beneficiary_list_id=beneficiary_list_id,
@@ -99,7 +99,7 @@ class RegistryHousehold(RegistryInterface):
             return BeneficiaryListSummaryHouseholdPayload(
                 beneficiary_list_summary=BeneficiaryListSummary(
                     id="",
-                    program_id="",
+                    program_id=0,
                     program_mnemonic="",
                     target_registry="household",
                     beneficiary_list_id=beneficiary_list_id,

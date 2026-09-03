@@ -51,7 +51,7 @@ class RegistryIndividual(RegistryInterface):
             return BeneficiaryListSummaryIndividualPayload(
                 beneficiary_list_summary=BeneficiaryListSummary(
                     id="",
-                    program_id="",
+                    program_id=0,
                     program_mnemonic="",
                     target_registry="individual",
                     beneficiary_list_id=beneficiary_list_id,
@@ -100,7 +100,7 @@ class RegistryIndividual(RegistryInterface):
             return BeneficiaryListSummaryIndividualPayload(
                 beneficiary_list_summary=BeneficiaryListSummary(
                     id="",
-                    program_id="",
+                    program_id=0,
                     program_mnemonic="",
                     target_registry="individual",
                     beneficiary_list_id=beneficiary_list_id,
