@@ -2,7 +2,9 @@ from enum import Enum
 
 
 class G2PRegistryType(Enum):
+    INDIVIDUAL = "individual"
+    HOUSEHOLD = "household"
     FARMER = "farmer"
     STUDENT = "student"
-    FAMILIES = "families"
+    GROUP = "group"
     OTHER = "other"
