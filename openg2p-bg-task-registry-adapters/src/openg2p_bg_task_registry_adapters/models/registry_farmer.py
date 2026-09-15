@@ -4,7 +4,7 @@ from sqlalchemy.orm import mapped_column
 
 
 class G2PFarmerRegistry(G2PRegistry):
-    __tablename__ = "g2p_farmer_registry"
+    __tablename__ = "g2p_register_farmers"
 
     name = mapped_column(String, nullable=False)
     gender = mapped_column(String, nullable=True)  # 'male' or 'female'

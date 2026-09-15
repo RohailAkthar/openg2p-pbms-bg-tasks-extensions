@@ -21,6 +21,22 @@ class RegistryInterface(ABC):
     Defines methods for interacting with the registry classes
     """
 
+    # Maps target_registry values (singular) to actual NSR table names (plural)
+    TABLE_NAME_MAP = {
+        "individual": "g2p_register_individuals",
+        "household": "g2p_register_households",
+        "farmer": "g2p_register_farmers",
+        "student": "g2p_register_students",
+        "group": "g2p_register_groups",
+        "families": "g2p_register_families",
+    }
+
+    def _get_nsr_table_name(self, target_registry: str) -> str:
+        """Resolve a target_registry value to the actual NSR table name."""
+        return self.TABLE_NAME_MAP.get(
+            target_registry, f"g2p_register_{target_registry}"
+        )
+
     # ================
     # Summary methods
     # ================
@@ -137,7 +153,7 @@ class RegistryInterface(ABC):
         if not multiplier or multiplier == "none":
             return None
 
-        table_name = f"g2p_register_{target_registry}"
+        table_name = self._get_nsr_table_name(target_registry)
         sql_query = text(
             f"""
             SELECT {multiplier} FROM {table_name}
@@ -162,7 +178,7 @@ class RegistryInterface(ABC):
         where_clause = where_clause.replace("“", '"').replace("”", '"')
         where_clause = where_clause.replace("‘", "'").replace("’", "'")
 
-        table_name = f"g2p_register_{target_registry}"
+        table_name = self._get_nsr_table_name(target_registry)
         where_clause_sql = f" AND {where_clause}" if where_clause else ""
         registrant_placeholders = ", ".join(
             [f":registrant_id_{i}" for i in range(len(registrant_ids))]
@@ -195,7 +211,7 @@ class RegistryInterface(ABC):
         where_clause = where_clause.replace("“", '"').replace("”", '"')
         where_clause = where_clause.replace("‘", "'").replace("’", "'")
 
-        table_name = f"g2p_register_{target_registry}"
+        table_name = self._get_nsr_table_name(target_registry)
         where_clause_sql = f" AND {where_clause}" if where_clause else ""
         registrant_placeholders = ", ".join(
             [f":registrant_id_{i}" for i in range(len(registrant_ids))]
@@ -225,12 +241,14 @@ class RegistryInterface(ABC):
             raise ValueError("Invalid SQL query: Must be a valid SELECT statement")
 
         if "WHERE" in sql_query.upper():
+            nsr_table = self._get_nsr_table_name(target_registry)
             sql_query += (
-                f" AND g2p_register_{target_registry}.internal_record_id = :registrant_id"
+                f" AND {nsr_table}.internal_record_id = :registrant_id"
             )
         else:
+            nsr_table = self._get_nsr_table_name(target_registry)
             sql_query += (
-                f" WHERE g2p_register_{target_registry}.internal_record_id = :registrant_id"
+                f" WHERE {nsr_table}.internal_record_id = :registrant_id"
             )
 
         params = {"registrant_id": registrant_id}
