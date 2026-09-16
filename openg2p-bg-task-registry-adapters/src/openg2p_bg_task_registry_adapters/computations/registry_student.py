@@ -41,7 +41,7 @@ class RegistryStudent(RegistryInterface):
     # Summary API Methods
     # ===================
     async def get_summary(
-        self, beneficiary_list_id: int, bg_task_session: AsyncSession
+        self, beneficiary_list_id: int, bg_task_session: AsyncSession, formated: bool = False,
     ) -> BeneficiaryListSummaryStudentPayload:
         _logger.info(f"Fetching summary for beneficiary_list_id: {beneficiary_list_id}")
         summary_row = await bg_task_session.execute(
@@ -173,7 +173,7 @@ class RegistryStudent(RegistryInterface):
         search_query: Optional[str] = None,
         page: int = 1,
         page_size: int = 10,
-        order_by: str = "id asc",
+        order_by: str = "internal_record_id asc",
     ) -> BeneficiarySearchResponsePayload:
         registrant_details_result = await bg_task_session.execute(
             select(BeneficiaryListDetails.registrant_details).where(
@@ -213,20 +213,25 @@ class RegistryStudent(RegistryInterface):
                 G2PStudentRegistryPayload(
                     internal_record_id=student["internal_record_id"],
                     name=student["record_name"] or "",
+                    student_id=student.get("student_id") or student["internal_record_id"],
+                    gender=student.get("gender"),
+                    school_name=student.get("school_name"),
                     institution_name=student.get("school_name"),
+                    class_grade=student.get("class_grade"),
+                    district=student.get("district"),
+                    block=student.get("block"),
+                    village=student.get("village"),
                     date_of_birth=student.get("birth_date"),
                 )
                 for student in student_search_results
             ]
 
         response_payload = BeneficiarySearchResponsePayload(
-            total_beneficiary_count=total_beneficiary_count,
-            page=page,
-            page_size=page_size,
+            beneficiary_count=total_beneficiary_count,
             beneficiaries=beneficiaries,
         )
 
-        return response_payload
+        return response_payload, total_beneficiary_count
 
     @cache(expire=120, key_builder=beneficiary_count_key_builder)
     async def _get_total_beneficiary_count(

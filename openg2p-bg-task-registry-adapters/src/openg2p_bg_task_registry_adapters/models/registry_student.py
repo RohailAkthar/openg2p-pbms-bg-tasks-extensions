@@ -7,9 +7,14 @@ class G2PStudentRegistry(G2PRegistry):
     __tablename__ = "g2p_register_students"
 
     record_name = mapped_column(String, nullable=True)
-    gender = mapped_column(String, nullable=True)  # 'male' or 'female'
+    student_id = mapped_column(String, nullable=True)
+    gender = mapped_column(String, nullable=True)
     school_name = mapped_column(String, nullable=True)
+    class_grade = mapped_column(String, nullable=True)
     birth_date = mapped_column(Date, nullable=True)
+    district = mapped_column(String, nullable=True)
+    block = mapped_column(String, nullable=True)
+    village = mapped_column(String, nullable=True)
 
     @property
     def name(self):

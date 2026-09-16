@@ -177,7 +177,7 @@ class RegistryFarmer(RegistryInterface):
         search_query,
         page=1,
         page_size=10,
-        order_by="id asc",
+        order_by="internal_record_id asc",
     ) -> BeneficiarySearchResponsePayload:
         registrant_details = await bg_task_session.execute(
             select(BeneficiaryListDetails.registrant_details).where(
@@ -216,7 +216,16 @@ class RegistryFarmer(RegistryInterface):
                 G2PFarmerRegistryPayload(
                     internal_record_id=farmer["internal_record_id"],
                     name=farmer.get("farmer_name") or farmer.get("record_name") or "",
+                    farmer_id=farmer.get("farmer_id") or farmer["internal_record_id"],
+                    farmer_name=farmer.get("farmer_name") or farmer.get("record_name") or "",
+                    gender=farmer.get("gender"),
+                    crop_type=farmer.get("crop_type"),
                     land_area=farmer.get("land_area_acres"),
+                    land_area_acres=farmer.get("land_area_acres"),
+                    pm_kisan_enrolled=farmer.get("pm_kisan_enrolled"),
+                    district=farmer.get("district"),
+                    block=farmer.get("block"),
+                    village=farmer.get("village"),
                     annual_income=None,
                     no_of_cattle_heads=None,
                     no_of_poultry_heads=None,
@@ -227,13 +236,11 @@ class RegistryFarmer(RegistryInterface):
             ]
 
         response_payload = BeneficiarySearchResponsePayload(
-            total_beneficiary_count=total_beneficiary_count,
-            page=page,
-            page_size=page_size,
+            beneficiary_count=total_beneficiary_count,
             beneficiaries=beneficiaries,
         )
 
-        return response_payload
+        return response_payload, total_beneficiary_count
 
     @cache(expire=120, key_builder=beneficiary_count_key_builder)
     async def _get_total_beneficiary_count(

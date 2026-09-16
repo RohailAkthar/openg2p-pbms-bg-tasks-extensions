@@ -1,5 +1,5 @@
 from openg2p_pbms_models.models import G2PRegistry
-from sqlalchemy import Date, Float, String
+from sqlalchemy import Boolean, Date, Float, String
 from sqlalchemy.orm import mapped_column
 
 
@@ -7,10 +7,16 @@ class G2PFarmerRegistry(G2PRegistry):
     __tablename__ = "g2p_register_farmers"
 
     record_name = mapped_column(String, nullable=True)
+    farmer_id = mapped_column(String, nullable=True)
     farmer_name = mapped_column(String, nullable=True)
     gender = mapped_column(String, nullable=True)  # 'male' or 'female'
     birth_date = mapped_column(Date, nullable=True)
+    crop_type = mapped_column(String, nullable=True)
     land_area_acres = mapped_column(Float, nullable=True)
+    pm_kisan_enrolled = mapped_column(Boolean, nullable=True)
+    district = mapped_column(String, nullable=True)
+    block = mapped_column(String, nullable=True)
+    village = mapped_column(String, nullable=True)
 
     @property
     def name(self):
