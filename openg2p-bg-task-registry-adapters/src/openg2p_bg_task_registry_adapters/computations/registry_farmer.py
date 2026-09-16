@@ -212,28 +212,58 @@ class RegistryFarmer(RegistryInterface):
         )
         beneficiaries = []
         if farmer_search_results:
-            beneficiaries = [
-                G2PFarmerRegistryPayload(
-                    internal_record_id=farmer["internal_record_id"],
-                    name=farmer.get("farmer_name") or farmer.get("record_name") or "",
-                    farmer_id=farmer.get("farmer_id") or farmer["internal_record_id"],
-                    farmer_name=farmer.get("farmer_name") or farmer.get("record_name") or "",
-                    gender=farmer.get("gender"),
-                    crop_type=farmer.get("crop_type"),
-                    land_area=farmer.get("land_area_acres"),
-                    land_area_acres=farmer.get("land_area_acres"),
-                    pm_kisan_enrolled=farmer.get("pm_kisan_enrolled"),
-                    district=farmer.get("district"),
-                    block=farmer.get("block"),
-                    village=farmer.get("village"),
-                    annual_income=None,
-                    no_of_cattle_heads=None,
-                    no_of_poultry_heads=None,
-                    large_area_code=None,
-                    small_area_code=None,
+            for farmer in farmer_search_results:
+                farmer_id = (
+                    farmer.get("farmer_id")
+                    or farmer.get("functional_record_id")
                 )
-                for farmer in farmer_search_results
-            ]
+                record_name = farmer.get("farmer_name") or farmer.get("record_name") or ""
+                if not farmer_id and "(" in record_name and record_name.endswith(")"):
+                    farmer_id = record_name[record_name.rfind("(") + 1 : -1]
+                farmer_id = farmer_id or farmer["internal_record_id"]
+
+                first_name = (farmer.get("first_name") or "").strip()
+                last_name = (farmer.get("last_name") or "").strip()
+                name = f"{first_name} {last_name}".strip()
+                if not name:
+                    name = farmer.get("farmer_name") or ""
+                if not name:
+                    if "(" in record_name and record_name.endswith(")"):
+                        name = record_name[: record_name.rfind("(")].strip()
+                    else:
+                        name = record_name
+
+                beneficiaries.append(
+                    G2PFarmerRegistryPayload(
+                        internal_record_id=farmer["internal_record_id"],
+                        name=name,
+                        farmer_id=farmer_id,
+                        farmer_name=name,
+                        aadhaar_number=farmer.get("foundational_id"),
+                        gender=farmer.get("gender"),
+                        date_of_birth=farmer.get("birth_date"),
+                        mobile_number=farmer.get("farmer_mobile_number") or farmer.get("mobile_phone_number"),
+                        relation_name=farmer.get("relation_name"),
+                        crop_type=farmer.get("crop_type"),
+                        land_area=float(farmer["land_area_acres"]) if farmer.get("land_area_acres") is not None else None,
+                        land_area_acres=float(farmer["land_area_acres"]) if farmer.get("land_area_acres") is not None else None,
+                        land_ownership_type=farmer.get("land_ownership_type"),
+                        pm_kisan_enrolled=farmer.get("pm_kisan_enrolled"),
+                        pmfby_enrolled=farmer.get("pmfby_enrolled"),
+                        bank_account_no=farmer.get("farmer_bank_account_no"),
+                        khata_number=farmer.get("khata_number"),
+                        khesra_number=farmer.get("khesra_number"),
+                        khatiyan_number=farmer.get("khatiyan_number"),
+                        district=farmer.get("district"),
+                        block=farmer.get("block"),
+                        village=farmer.get("village"),
+                        annual_income=None,
+                        no_of_cattle_heads=None,
+                        no_of_poultry_heads=None,
+                        large_area_code=None,
+                        small_area_code=None,
+                    )
+                )
 
         response_payload = BeneficiarySearchResponsePayload(
             beneficiary_count=total_beneficiary_count,

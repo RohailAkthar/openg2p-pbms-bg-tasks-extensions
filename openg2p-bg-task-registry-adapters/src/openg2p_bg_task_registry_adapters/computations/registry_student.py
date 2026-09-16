@@ -209,22 +209,50 @@ class RegistryStudent(RegistryInterface):
 
         beneficiaries = []
         if student_search_results:
-            beneficiaries = [
-                G2PStudentRegistryPayload(
-                    internal_record_id=student["internal_record_id"],
-                    name=student["record_name"] or "",
-                    student_id=student.get("student_id") or student["internal_record_id"],
-                    gender=student.get("gender"),
-                    school_name=student.get("school_name"),
-                    institution_name=student.get("school_name"),
-                    class_grade=student.get("class_grade"),
-                    district=student.get("district"),
-                    block=student.get("block"),
-                    village=student.get("village"),
-                    date_of_birth=student.get("birth_date"),
+            beneficiaries = []
+            for student in student_search_results:
+                student_id = (
+                    student.get("udise_student_id")
+                    or student.get("student_id")
+                    or student.get("functional_record_id")
                 )
-                for student in student_search_results
-            ]
+                record_name = student.get("record_name") or ""
+                if not student_id and "(" in record_name and record_name.endswith(")"):
+                    student_id = record_name[record_name.rfind("(") + 1 : -1]
+                student_id = student_id or student["internal_record_id"]
+
+                first_name = (student.get("first_name") or "").strip()
+                last_name = (student.get("last_name") or "").strip()
+                name = f"{first_name} {last_name}".strip()
+                if not name:
+                    if "(" in record_name and record_name.endswith(")"):
+                        name = record_name[: record_name.rfind("(")].strip()
+                    else:
+                        name = record_name
+
+                beneficiaries.append(
+                    G2PStudentRegistryPayload(
+                        internal_record_id=student["internal_record_id"],
+                        name=name,
+                        student_id=student_id,
+                        aadhaar_number=student.get("foundational_id") or student.get("student_aadhaar_number"),
+                        gender=student.get("gender"),
+                        date_of_birth=student.get("birth_date"),
+                        guardian_aadhaar=student.get("guardian_aadhaar_number"),
+                        district=student.get("district"),
+                        block=student.get("block"),
+                        state=student.get("state"),
+                        village=student.get("village"),
+                        school_name=student.get("school_name"),
+                        institution_name=student.get("school_name"),
+                        school_udise_code=student.get("school_udise_code"),
+                        education_level=student.get("education_level"),
+                        class_grade=student.get("class_grade"),
+                        admission_date=student.get("admission_date") or student.get("enrollment_date"),
+                        attendance_percentage=float(student["attendance_percentage"]) if student.get("attendance_percentage") is not None else None,
+                        scholarship_status=student.get("scholarship_status"),
+                    )
+                )
 
         response_payload = BeneficiarySearchResponsePayload(
             beneficiary_count=total_beneficiary_count,
