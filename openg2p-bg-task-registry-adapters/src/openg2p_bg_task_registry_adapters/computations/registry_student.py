@@ -263,15 +263,25 @@ class RegistryStudent(RegistryInterface):
         ages = []
         for beneficiary_list_detail in beneficiary_list_details:
             registrant_ids = []
-            registrant_details = beneficiary_list_detail.get("registrant_details")
+            if isinstance(beneficiary_list_detail, dict):
+                registrant_details = beneficiary_list_detail.get("registrant_details") or []
+            else:
+                registrant_details = getattr(beneficiary_list_detail, "registrant_details", []) or []
+
             if isinstance(registrant_details, str):
                 registrant_details = json.loads(registrant_details)
+
             for registrant in registrant_details:
-                registrant_ids.append(registrant["registrant_id"])
+                if isinstance(registrant, dict):
+                    registrant_ids.append(registrant.get("registrant_id"))
+                elif hasattr(registrant, "registrant_id"):
+                    registrant_ids.append(registrant.registrant_id)
+
+            registrant_ids = [rid for rid in registrant_ids if rid is not None]
 
             registrants = self.get_registrants_by_ids(registrant_ids, sr_session)
             for registrant in registrants:
-                if registrant.date_of_birth:
+                if getattr(registrant, "date_of_birth", None):
                     ages.append(self.calculate_age(registrant.date_of_birth))
 
         student_summary = BeneficiaryListSummaryStudentModel(
