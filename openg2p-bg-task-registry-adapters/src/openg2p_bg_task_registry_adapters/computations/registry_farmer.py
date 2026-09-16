@@ -214,15 +214,14 @@ class RegistryFarmer(RegistryInterface):
         if farmer_search_results:
             beneficiaries = [
                 G2PFarmerRegistryPayload(
-                    id=farmer["id"],
-                    link_registry_id=farmer["link_registry_id"],
-                    name=farmer["name"],
-                    land_area=farmer["land_area"],
-                    annual_income=farmer["annual_income"],
-                    no_of_cattle_heads=farmer["no_of_cattle_heads"],
-                    no_of_poultry_heads=farmer["no_of_poultry_heads"],
-                    large_area_code=farmer["large_area_code"],
-                    small_area_code=farmer["small_area_code"],
+                    internal_record_id=farmer["internal_record_id"],
+                    name=farmer.get("farmer_name") or farmer.get("record_name") or "",
+                    land_area=farmer.get("land_area_acres"),
+                    annual_income=None,
+                    no_of_cattle_heads=None,
+                    no_of_poultry_heads=None,
+                    large_area_code=None,
+                    small_area_code=None,
                 )
                 for farmer in farmer_search_results
             ]
@@ -342,7 +341,7 @@ class RegistryFarmer(RegistryInterface):
         self, registrant_ids, sr_session
     ) -> List[G2PFarmerRegistry]:
         farmers = sr_session.query(G2PFarmerRegistry).filter(
-            G2PFarmerRegistry.link_registry_id.in_(registrant_ids)
+            G2PFarmerRegistry.internal_record_id.in_(registrant_ids)
         )
 
         return list(farmers.yield_per(500))
@@ -401,7 +400,7 @@ class RegistryFarmer(RegistryInterface):
             )
 
             for registrant in registrants_list:
-                registrant_map_from_registry[str(registrant.link_registry_id)] = registrant
+                registrant_map_from_registry[str(registrant.internal_record_id)] = registrant
 
         # Collect entitlements per benefit_code_id
         entitlements: dict[int, list[float]] = {}

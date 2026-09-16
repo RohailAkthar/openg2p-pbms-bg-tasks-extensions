@@ -10,7 +10,6 @@ class G2PStudentRegistry(G2PRegistry):
     gender = mapped_column(String, nullable=True)  # 'male' or 'female'
     school_name = mapped_column(String, nullable=True)
     birth_date = mapped_column(Date, nullable=True)
-    link_registry_id = mapped_column(String, nullable=True)
 
     @property
     def name(self):

@@ -11,7 +11,6 @@ class G2PFarmerRegistry(G2PRegistry):
     gender = mapped_column(String, nullable=True)  # 'male' or 'female'
     birth_date = mapped_column(Date, nullable=True)
     land_area_acres = mapped_column(Float, nullable=True)
-    link_registry_id = mapped_column(String, nullable=True)
 
     @property
     def name(self):
