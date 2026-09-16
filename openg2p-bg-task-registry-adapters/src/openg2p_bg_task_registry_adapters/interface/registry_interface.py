@@ -162,6 +162,23 @@ class RegistryInterface(ABC):
         )
         return sql_query
 
+    def _normalize_where_clause(self, where_clause: str) -> str:
+        if not where_clause:
+            return ""
+        # Replace curly quotes in the where clause
+        where_clause = where_clause.replace("“", '"').replace("”", '"')
+        where_clause = where_clause.replace("‘", "'").replace("’", "'")
+        # Ensure gender comparisons are case-insensitive
+        if "gender" in where_clause:
+            import re
+            where_clause = re.sub(
+                r'("[^"]*"\."gender")\s*=\s*(\'[^\']*\')',
+                r'LOWER(\1) = LOWER(\2)',
+                where_clause,
+                flags=re.IGNORECASE,
+            )
+        return where_clause
+
     def construct_beneficiary_search_sql_query(
         self,
         registrant_ids: List[str],
@@ -174,10 +191,7 @@ class RegistryInterface(ABC):
         if not registrant_ids:
             return None, {}
 
-        # Replace curly quotes in the where clause
-        where_clause = where_clause.replace("“", '"').replace("”", '"')
-        where_clause = where_clause.replace("‘", "'").replace("’", "'")
-
+        where_clause = self._normalize_where_clause(where_clause)
         table_name = self._get_nsr_table_name(target_registry)
         where_clause_sql = f" AND {where_clause}" if where_clause else ""
         registrant_placeholders = ", ".join(
@@ -207,10 +221,7 @@ class RegistryInterface(ABC):
         if not registrant_ids:
             return None, {}
 
-        # Replace curly quotes in the where clause
-        where_clause = where_clause.replace("“", '"').replace("”", '"')
-        where_clause = where_clause.replace("‘", "'").replace("’", "'")
-
+        where_clause = self._normalize_where_clause(where_clause)
         table_name = self._get_nsr_table_name(target_registry)
         where_clause_sql = f" AND {where_clause}" if where_clause else ""
         registrant_placeholders = ", ".join(
