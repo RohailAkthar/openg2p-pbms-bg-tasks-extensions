@@ -1,18 +1,26 @@
 from openg2p_pbms_models.models import G2PRegistry
-from sqlalchemy import Date, Integer, String
+from sqlalchemy import Date, String
 from sqlalchemy.orm import mapped_column
 
 
 class G2PStudentRegistry(G2PRegistry):
     __tablename__ = "g2p_register_students"
 
-    name = mapped_column(String, nullable=False)
+    record_name = mapped_column(String, nullable=True)
     gender = mapped_column(String, nullable=True)  # 'male' or 'female'
-    institution_name = mapped_column(String, nullable=True)
-    date_of_birth = mapped_column(Date, nullable=True)
-    large_area_id = mapped_column(Integer, nullable=True)
-    large_area_code = mapped_column(String, nullable=True)
-    small_area_id = mapped_column(Integer, nullable=True)
-    small_area_code = mapped_column(String, nullable=True)
-    link_registry_id  = mapped_column(String, nullable=True)
+    school_name = mapped_column(String, nullable=True)
+    birth_date = mapped_column(Date, nullable=True)
+    link_registry_id = mapped_column(String, nullable=True)
+
+    @property
+    def name(self):
+        return self.record_name
+
+    @property
+    def institution_name(self):
+        return self.school_name
+
+    @property
+    def date_of_birth(self):
+        return self.birth_date
 

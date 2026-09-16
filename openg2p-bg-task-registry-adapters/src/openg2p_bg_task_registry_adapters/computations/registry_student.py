@@ -281,8 +281,9 @@ class RegistryStudent(RegistryInterface):
 
             registrants = self.get_registrants_by_ids(registrant_ids, sr_session)
             for registrant in registrants:
-                if getattr(registrant, "date_of_birth", None):
-                    ages.append(self.calculate_age(registrant.date_of_birth))
+                dob = getattr(registrant, "birth_date", None) or getattr(registrant, "date_of_birth", None)
+                if dob:
+                    ages.append(self.calculate_age(dob))
 
         student_summary = BeneficiaryListSummaryStudentModel(
             program_id=base_summary.program_id,

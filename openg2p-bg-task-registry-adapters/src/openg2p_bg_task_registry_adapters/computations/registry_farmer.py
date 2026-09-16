@@ -280,14 +280,29 @@ class RegistryFarmer(RegistryInterface):
 
         for beneficiary_list_detail in beneficiary_list_details:
             registrant_ids = []
-            for registrant_detail in beneficiary_list_detail.registrant_details:
-                registrant_detail = RegistrantDetails(**registrant_detail)
-                registrant_ids.append(registrant_detail.registrant_id)
+            if isinstance(beneficiary_list_detail, dict):
+                reg_details = beneficiary_list_detail.get("registrant_details") or []
+            else:
+                reg_details = getattr(beneficiary_list_detail, "registrant_details", []) or []
+
+            if isinstance(reg_details, str):
+                reg_details = json.loads(reg_details)
+
+            for registrant_detail in reg_details:
+                if isinstance(registrant_detail, dict):
+                    reg_obj = RegistrantDetails(**registrant_detail)
+                    registrant_ids.append(reg_obj.registrant_id)
+                elif hasattr(registrant_detail, "registrant_id"):
+                    registrant_ids.append(registrant_detail.registrant_id)
+
+            registrant_ids = [rid for rid in registrant_ids if rid is not None]
 
             registrants = self.get_registrants_by_ids(registrant_ids, sr_session)
             for farmer in registrants:
-                land_areas.append(farmer.land_area)
-                annual_incomes.append(farmer.annual_income)
+                if getattr(farmer, "land_area", None) is not None:
+                    land_areas.append(float(farmer.land_area))
+                if getattr(farmer, "annual_income", None) is not None:
+                    annual_incomes.append(float(farmer.annual_income))
 
         # Land Area Summary
         if land_areas:
