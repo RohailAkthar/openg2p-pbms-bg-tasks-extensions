@@ -156,27 +156,65 @@ class RegisterFamilies(RegistryInterface):
         )
 
         total_beneficiary_count: int = await self._get_total_beneficiary_count(
-            sr_session, beneficiary_list_id, registrant_ids, search_query
+            sr_session, beneficiary_list_id, registrant_ids, search_query, target_registry
         )
         beneficiaries = []
         if families_search_results:
-            beneficiaries = [
-                G2PRegisterFamiliesPayload(
-                    internal_record_id=families["internal_record_id"],
-                    functional_record_id=families["functional_record_id"],
-                    family_name=families["family_name"],
-                    type_of_housing=families["type_of_housing"],
-                    house_condition=families["house_condition"],
-                    sanitation_condition=families["sanitation_condition"],
-                    water_access=families["water_access"],
-                    electricity_access=families["electricity_access"],
-                    ethnic_group=families["ethnic_group"],
-                    no_of_children=families["no_of_children"],
-                    belong_to_protected_groups=families["belong_to_protected_groups"],
-                    under_other_vulnerable_status=families["under_other_vulnerable_status"],
-                )
-                for families in families_search_results
-            ]
+            if target_registry == "gramstackhousehold":
+                for row in families_search_results:
+                    beneficiaries.append({
+                        "internal_record_id": row.get("internal_record_id"),
+                        "household_reference_name": row.get("household_reference_name"),
+                        "house_reference_no": row.get("house_reference_no"),
+                        "lokos_id": row.get("lokos_id"),
+                        "applicant_name": row.get("applicant_name"),
+                        "member_name": row.get("member_name"),
+                        "gender": row.get("gender"),
+                        "dob": str(row.get("dob")) if row.get("dob") else None,
+                        "relationship_to_hoh": row.get("relationship_to_hoh"),
+                        "mobile_number": row.get("mobile_number"),
+                        "bank_account_no": row.get("bank_account_no"),
+                        "ifsc": row.get("ifsc"),
+                        "village": row.get("village"),
+                        "gram_panchayat": row.get("gram_panchayat"),
+                        "block": row.get("block"),
+                        "district": row.get("district"),
+                        "pds_classification": row.get("pds_classification"),
+                        "aadhaar_number": row.get("aadhaar_number"),
+                        "member_id": row.get("member_id"),
+                        "shg_id": row.get("shg_id"),
+                        "shg_name": row.get("shg_name"),
+                        "vo_name": row.get("vo_name"),
+                        "clf_name": row.get("clf_name"),
+                        "shg_role": row.get("shg_role"),
+                        "monthly_savings_amount": float(row.get("monthly_savings_amount") or 0),
+                        "internal_loan_outstanding": float(row.get("internal_loan_outstanding") or 0),
+                        "ccl_limit": float(row.get("ccl_limit") or 0),
+                        "ccl_utilized": float(row.get("ccl_utilized") or 0),
+                        "shg_grading": row.get("shg_grading"),
+                        "scheme_code": row.get("scheme_code"),
+                        "scheme_name": row.get("scheme_name"),
+                        "status": row.get("status"),
+                        "applied_at": str(row.get("applied_at")) if row.get("applied_at") else None,
+                    })
+            else:
+                beneficiaries = [
+                    G2PRegisterFamiliesPayload(
+                        internal_record_id=families["internal_record_id"],
+                        functional_record_id=families.get("functional_record_id", ""),
+                        family_name=families.get("family_name", ""),
+                        type_of_housing=families.get("type_of_housing"),
+                        house_condition=families.get("house_condition"),
+                        sanitation_condition=families.get("sanitation_condition"),
+                        water_access=families.get("water_access"),
+                        electricity_access=families.get("electricity_access"),
+                        ethnic_group=families.get("ethnic_group"),
+                        no_of_children=families.get("no_of_children"),
+                        belong_to_protected_groups=families.get("belong_to_protected_groups"),
+                        under_other_vulnerable_status=families.get("under_other_vulnerable_status"),
+                    )
+                    for families in families_search_results
+                ]
 
         response_payload = BeneficiarySearchResponsePayload(
             beneficiary_count=len(beneficiaries),
@@ -192,12 +230,13 @@ class RegisterFamilies(RegistryInterface):
         beneficiary_list_id: str,
         registrant_ids: List[str],
         search_query: str,
+        target_registry: str = "gramstackhousehold",
     ) -> int:
         (
             beneficiary_count_query,
             beneficiary_count_params,
         ) = self.construct_beneficiary_search_count_sql_query(
-            registrant_ids, "families", search_query
+            registrant_ids, target_registry, search_query
         )
         total_beneficiary_count = (
             await sr_session.execute(beneficiary_count_query, beneficiary_count_params)
