@@ -16,7 +16,13 @@ class RegistryFactory:
             return RegistryFarmer()
         elif target_registry == G2PRegistryType.STUDENT.value:
             return RegistryStudent()
-        elif target_registry in (G2PRegistryType.GROUP.value, "families", "household"):
+        elif target_registry in (
+            G2PRegistryType.GROUP.value,
+            "families",
+            "household",
+            G2PRegistryType.GRAMSTACKHOUSEHOLD.value,
+            "gramstackhousehold",
+        ):
             return RegisterFamilies()
         else:
             raise BGTaskException(code=BGTaskErrorCodes.INVALID_REQUEST)

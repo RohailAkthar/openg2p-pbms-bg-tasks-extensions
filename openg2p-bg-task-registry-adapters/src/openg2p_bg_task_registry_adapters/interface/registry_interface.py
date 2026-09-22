@@ -29,6 +29,7 @@ class RegistryInterface(ABC):
         "student": "g2p_register_students",
         "group": "g2p_register_groups",
         "families": "g2p_register_families",
+        "gramstackhousehold": "g2p_register_gramstack_households",
     }
 
     def _get_nsr_table_name(self, target_registry: str) -> str:

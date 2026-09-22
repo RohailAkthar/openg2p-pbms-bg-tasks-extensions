@@ -8,3 +8,4 @@ class G2PRegistryType(Enum):
     STUDENT = "student"
     GROUP = "group"
     OTHER = "other"
+    GRAMSTACKHOUSEHOLD = "gramstackhousehold"
