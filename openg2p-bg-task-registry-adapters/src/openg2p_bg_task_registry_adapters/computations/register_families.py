@@ -53,6 +53,10 @@ class RegisterFamilies(RegistryInterface):
             beneficiary_list_summary_families.scalars().first()
         )
 
+        # Guard: summary row may not exist yet if the worker hasn't finished
+        if beneficiary_list_summary_families is None:
+            return None
+
         summary_families_payload = BeneficiaryListSummaryFamiliesPayload(
             beneficiary_list_summary=BeneficiaryListSummary(
                 id=beneficiary_list_summary_families.id,
@@ -82,6 +86,10 @@ class RegisterFamilies(RegistryInterface):
             .filter_by(beneficiary_list_id=beneficiary_list_id)
             .first()
         )
+
+        # Guard: summary row may not exist yet if the worker hasn't finished
+        if beneficiary_list_summary_families is None:
+            return None
 
         summary_families_payload = BeneficiaryListSummaryFamiliesPayload(
             beneficiary_list_summary=BeneficiaryListSummary(
