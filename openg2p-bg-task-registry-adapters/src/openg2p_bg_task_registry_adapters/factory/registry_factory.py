@@ -23,6 +23,6 @@ class RegistryFactory:
             G2PRegistryType.GRAMSTACKHOUSEHOLD.value,
             "gramstackhousehold",
         ):
-            return RegisterFamilies()
+            return RegisterFamilies(target_registry=target_registry)
         else:
             raise BGTaskException(code=BGTaskErrorCodes.INVALID_REQUEST)

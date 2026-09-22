@@ -34,6 +34,9 @@ from ..schema import (
 class RegisterFamilies(RegistryInterface):
     """Fetches families data and computes summary statistics"""
 
+    def __init__(self, target_registry: str = "families"):
+        self.target_registry = target_registry
+
     # ===================
     # Summary API Methods
     # ===================
@@ -340,7 +343,7 @@ class RegisterFamilies(RegistryInterface):
     ) -> bool:
         sql_query_with_registrant_id = (
             self.construct_get_is_registrant_entitled_sql_query(
-                registrant_id, "families", sql_query
+                registrant_id, self.target_registry, sql_query
             )
         )
         result = sr_session.execute(sql_query_with_registrant_id).fetchone()
@@ -353,7 +356,7 @@ class RegisterFamilies(RegistryInterface):
             return 1
 
         sql_query = self.construct_multiplier_sql_query(
-            multiplier, target_registry="families"
+            multiplier, target_registry=self.target_registry
         )
         params = {"registrant_id": registrant_id}
         result = sr_session.execute(sql_query, params).fetchone()
@@ -372,35 +375,12 @@ class RegisterFamilies(RegistryInterface):
             .all()
         )
 
-        registrant_map_from_registry: dict[str, G2PRegisterFamilies] = {}
-
-        for beneficiary_list_detail in beneficiary_list_details:
-            registrant_ids = []
-            for registrant_detail in beneficiary_list_detail.registrant_details:
-                registrant_detail = RegistrantDetails(**registrant_detail)
-                registrant_ids.append(registrant_detail.registrant_id)
-
-            # Fething registrants in batches
-            registrants_list: List[G2PRegisterFamilies] = self.get_registrants_by_ids(
-                registrant_ids, sr_session
-            )
-
-            for registrant in registrants_list:
-                registrant_map_from_registry[str(registrant.internal_record_id)] = registrant
-
         # Collect entitlements per benefit_code_id
         entitlements: dict[int, list[float]] = {}
-        # entitlements_male: dict[int, list[float]] = {}
-        # entitlements_female: dict[int, list[float]] = {}
 
         for beneficiary_list_detail in beneficiary_list_details:
             for registrant_detail in beneficiary_list_detail.registrant_details:
                 registrant_detail = RegistrantDetails(**registrant_detail)
-                registrant = registrant_map_from_registry.get(
-                    str(registrant_detail.registrant_id)
-                )
-                # gender = registrant.gender if registrant else None
-
                 for benefit_code_id, value in registrant_detail.entitlement.items():
                     # All entitlements
                     entitlements.setdefault(benefit_code_id, []).append(value)

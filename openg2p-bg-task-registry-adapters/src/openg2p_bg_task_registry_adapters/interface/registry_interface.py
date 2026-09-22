@@ -30,6 +30,7 @@ class RegistryInterface(ABC):
         "group": "g2p_register_groups",
         "families": "g2p_register_families",
         "gramstackhousehold": "g2p_register_gramstack_households",
+        "gramstack_household": "g2p_register_gramstack_households",
     }
 
     def _get_nsr_table_name(self, target_registry: str) -> str:
@@ -252,13 +253,18 @@ class RegistryInterface(ABC):
         if not sql_query.upper().startswith("SELECT"):
             raise ValueError("Invalid SQL query: Must be a valid SELECT statement")
 
-        if "WHERE" in sql_query.upper():
+        import re
+        from_match = re.search(r'FROM\s+["\']?([a-zA-Z0-9_]+)["\']?', sql_query, re.IGNORECASE)
+        if from_match:
+            nsr_table = f'"{from_match.group(1)}"'
+        else:
             nsr_table = self._get_nsr_table_name(target_registry)
+
+        if "WHERE" in sql_query.upper():
             sql_query += (
                 f" AND {nsr_table}.internal_record_id = :registrant_id"
             )
         else:
-            nsr_table = self._get_nsr_table_name(target_registry)
             sql_query += (
                 f" WHERE {nsr_table}.internal_record_id = :registrant_id"
             )
