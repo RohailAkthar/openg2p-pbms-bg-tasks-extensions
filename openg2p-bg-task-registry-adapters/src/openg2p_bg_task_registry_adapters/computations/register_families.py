@@ -162,7 +162,16 @@ class RegisterFamilies(RegistryInterface):
         if families_search_results:
             if target_registry == "gramstackhousehold":
                 for row in families_search_results:
+                    household_id = (
+                        row.get("household_id")
+                        or row.get("functional_record_id")
+                        or row.get("house_reference_no")
+                        or row.get("lokos_id")
+                        or row.get("internal_record_id")
+                    )
                     beneficiaries.append({
+                        "household_id": household_id,
+                        "functional_record_id": row.get("functional_record_id"),
                         "internal_record_id": row.get("internal_record_id"),
                         "household_reference_name": row.get("household_reference_name"),
                         "house_reference_no": row.get("house_reference_no"),
@@ -184,9 +193,12 @@ class RegisterFamilies(RegistryInterface):
                         "member_id": row.get("member_id"),
                         "shg_id": row.get("shg_id"),
                         "shg_name": row.get("shg_name"),
+                        "vo_id": row.get("vo_id"),
                         "vo_name": row.get("vo_name"),
+                        "clf_id": row.get("clf_id"),
                         "clf_name": row.get("clf_name"),
                         "shg_role": row.get("shg_role"),
+                        "shg_join_date": str(row.get("shg_join_date")) if row.get("shg_join_date") else None,
                         "monthly_savings_amount": float(row.get("monthly_savings_amount") or 0),
                         "internal_loan_outstanding": float(row.get("internal_loan_outstanding") or 0),
                         "ccl_limit": float(row.get("ccl_limit") or 0),
