@@ -70,6 +70,7 @@ class RegisterFamilies(RegistryInterface):
                 average_entitlement_per_registrant=beneficiary_list_summary_families.average_entitlement_per_person,
             ),
             registry_summary=BeneficiaryListSummaryFamilies(
+                number_of_eligible_households=beneficiary_list_summary_families.number_of_registrants,
                 entitlement_amount_q3=beneficiary_list_summary_families.entitlement_amount_q3,
                 entitlement_amount_q2=beneficiary_list_summary_families.entitlement_amount_q2,
                 entitlement_amount_q1=beneficiary_list_summary_families.entitlement_amount_q1,
@@ -104,6 +105,7 @@ class RegisterFamilies(RegistryInterface):
                 average_entitlement_per_registrant=beneficiary_list_summary_families.average_entitlement_per_person,
             ),
             registry_summary=BeneficiaryListSummaryFamilies(
+                number_of_eligible_households=beneficiary_list_summary_families.number_of_registrants,
                 entitlement_amount_q3=beneficiary_list_summary_families.entitlement_amount_q3,
                 entitlement_amount_q2=beneficiary_list_summary_families.entitlement_amount_q2,
                 entitlement_amount_q1=beneficiary_list_summary_families.entitlement_amount_q1,

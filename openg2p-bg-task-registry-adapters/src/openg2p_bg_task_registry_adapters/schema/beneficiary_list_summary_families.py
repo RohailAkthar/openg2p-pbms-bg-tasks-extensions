@@ -6,6 +6,9 @@ from .beneficiary_list_summary import BeneficiaryListSummaryPayload
 
 
 class BeneficiaryListSummaryFamilies(BaseModel):
+    # Scalar eligibility stats (shown in Statistics tab)
+    number_of_eligible_households: Optional[int] = None
+    # Entitlement stats (shown in entitlement section)
     # land_holding_mean: Optional[str] = None
     # land_holding_q3: Optional[str] = None
     # land_holding_q2: Optional[str] = None
