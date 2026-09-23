@@ -272,3 +272,124 @@ class RegistryInterface(ABC):
         params = {"registrant_id": registrant_id}
 
         return text(sql_query).params(**params)
+
+    async def update_reconciliation_status(
+        self,
+        sr_session: AsyncSession,
+        target_registry: str,
+        registrant_ids: List[str],
+        scheme_code: str,
+        new_status: str,
+        tranche_number: Optional[int] = None,
+        amount: Optional[float] = None,
+        reconciliation_id: Optional[str] = None,
+        bank_reference_number: Optional[str] = None,
+        program_mnemonic: Optional[str] = None,
+        cycle_mnemonic: Optional[str] = None,
+    ) -> int:
+        """
+        OpenG2P Standard Reconciliation Sync:
+        1. Updates applicant status in the NSR base registry table.
+        2. Appends an immutable record into NSR's g2p_registry_transaction_ledger.
+        """
+        if not registrant_ids:
+            return 0
+
+        table_name = self._get_nsr_table_name(target_registry)
+        amount_val = float(amount or 0.0)
+
+        # 1. Update status and aggregate columns in NSR base registry table
+        update_stmt = text(f"""
+            UPDATE {table_name}
+            SET 
+                status = :new_status,
+                payment_status = 'RECONCILED_SUCCESS',
+                reconciled_at = NOW(),
+                completed_tranches_count = COALESCE(completed_tranches_count, 0) + 1,
+                total_disbursed_amount = COALESCE(total_disbursed_amount, 0) + :amount,
+                last_disbursed_date = NOW(),
+                write_date = NOW()
+            WHERE internal_record_id = ANY(:registrant_ids)
+              AND (:scheme_code IS NULL OR scheme_code = :scheme_code)
+              AND status = 'APPLIED'
+            RETURNING internal_record_id;
+        """)
+
+        result = await sr_session.execute(update_stmt, {
+            "new_status": new_status,
+            "amount": amount_val,
+            "registrant_ids": registrant_ids,
+            "scheme_code": scheme_code,
+        })
+        updated_rows = result.fetchall()
+
+        if not updated_rows:
+            return 0
+
+        updated_ids = [row[0] for row in updated_rows]
+
+        # 2. Append immutable record to NSR g2p_registry_transaction_ledger
+        ledger_stmt = text(f"""
+            INSERT INTO g2p_registry_transaction_ledger (
+                target_registry,
+                internal_record_id,
+                beneficiary_name,
+                beneficiary_mobile,
+                aadhaar_number,
+                scheme_code,
+                scheme_name,
+                program_mnemonic,
+                cycle_mnemonic,
+                tranche_number,
+                source_system,
+                amount,
+                currency,
+                payment_method,
+                bank_account_no,
+                ifsc,
+                reconciliation_id,
+                bank_reference_number,
+                transaction_status,
+                reconciled_at
+            )
+            SELECT 
+                :target_registry,
+                h.internal_record_id,
+                COALESCE(h.applicant_name, h.member_name, h.household_reference_name, ''),
+                COALESCE(h.mobile_number, ''),
+                COALESCE(h.aadhaar_number, ''),
+                COALESCE(h.scheme_code, :scheme_code, ''),
+                COALESCE(h.scheme_name, :scheme_name, ''),
+                :program_mnemonic,
+                :cycle_mnemonic,
+                :tranche_number,
+                'PBMS',
+                :amount,
+                'INR',
+                'DBT_BANK',
+                COALESCE(h.bank_account_no, ''),
+                COALESCE(h.ifsc, ''),
+                :reconciliation_id,
+                :bank_reference_number,
+                'SUCCESS',
+                NOW()
+            FROM {table_name} h
+            WHERE h.internal_record_id = ANY(:updated_ids);
+        """)
+
+        await sr_session.execute(ledger_stmt, {
+            "target_registry": target_registry,
+            "scheme_code": scheme_code or "",
+            "scheme_name": "",
+            "program_mnemonic": program_mnemonic or "",
+            "cycle_mnemonic": cycle_mnemonic or "",
+            "tranche_number": tranche_number,
+            "amount": amount_val,
+            "reconciliation_id": reconciliation_id or "",
+            "bank_reference_number": bank_reference_number or "",
+            "updated_ids": updated_ids,
+        })
+
+        await sr_session.commit()
+        return len(updated_ids)
+
